@@ -1442,10 +1442,6 @@ var Eproc = {
 			this.processo = this.parametros.num_processo;
 			delete this.parametros.num_processo;
 		}
-		var brasao = $('#imgBrasao');
-		if (brasao) {
-			brasao.src = 'data:image/png;base64,' + GM_getBase64('chrome://eproc/skin/brasao.png');
-		}
 		var barraSistema = $('.infraBarraSistema'), lembretes = $$('.infraTable[summary="Lembretes"]');
 		if (barraSistema || lembretes.length) {
 			Eproc.mudaEstilos();
@@ -2651,7 +2647,7 @@ var Eproc = {
 					document.getElementsByName('acao')[0].value = acao;
 					salvarMemo();
 					window.close();
-					unsafeWindow.parent.wrappedJSObject.ocultarSubForm();
+					unsafeWindow.parent.ocultarSubForm();
 				}
 			}, false);
 			elemento.removeAttribute('onclick');
