@@ -1,0 +1,67 @@
+/*
+ * infra-global-esquema.css
+ */
+
+div.infraAreaGlobal,
+div.infraBarraTribunal {
+    border-color: hsl($hB, 25%, 80%); /* #ccc */
+}
+
+/*
+ * infra-esquema.css
+ */
+div.infraAreaGlobal {
+    border-left-color: hsl($hB,33%,67%); /* #8fc68d */
+}
+
+/*
+ * LOCAL
+ */
+
+#divInfraBarraSistema + div img {
+    display: none;
+}
+#divInfraBarraSistema + div:before,
+#divInfraBarraSistema + div:after,
+#divInfraBarraLocalizacao:before {
+    display: inline-block;
+    width: 2em;
+    height: 4em;
+    content: '';
+}
+#divInfraBarraSistema + div:before {
+    -webkit-border-radius: 0 0 2em;
+    -moz-border-radius: 0 0 2em;
+    border-radius: 0 0 2em;
+}
+#divInfraBarraLocalizacao:before {
+    position: absolute;
+    font-size: 50%;
+    margin-left: -2em;
+    margin-top: -0.6em;
+    background-color: $background;
+    -webkit-border-radius: 2em 0 0;
+    -moz-border-radius: 2em 0 0;
+    border-radius: 2em 0 0;
+}
+div.infraBarraTribunal {
+    background-color: hsl($hB, 50%, 50%);
+    background: -moz-linear-gradient(top,  hsl($hB,50%,75%) 0%, hsl($hB,31%,62%) 25%, hsl($hB,38%,50%) 25%, hsl($hB,45%,53%) 100%); /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,hsl($hB,50%,75%)), color-stop(25%,hsl($hB,31%,62%)), color-stop(25%,hsl($hB,38%,50%)), color-stop(100%,hsl($hB,45%,53%))); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  hsl($hB,50%,75%) 0%,hsl($hB,31%,62%) 25%,hsl($hB,38%,50%) 25%,hsl($hB,45%,53%) 100%); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  hsl($hB,50%,75%) 0%,hsl($hB,31%,62%) 25%,hsl($hB,38%,50%) 25%,hsl($hB,45%,53%) 100%); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  hsl($hB,50%,75%) 0%,hsl($hB,31%,62%) 25%,hsl($hB,38%,50%) 25%,hsl($hB,45%,53%) 100%); /* IE10+ */
+    background: linear-gradient(top,  hsl($hB,50%,75%) 0%,hsl($hB,31%,62%) 25%,hsl($hB,38%,50%) 25%,hsl($hB,45%,53%) 100%); /* W3C */
+}
+#divInfraBarraSistema,
+#divInfraBarraSistema + div:before,
+#divInfraBarraSistema + div:after {
+    background-color: hsl($hB, 75%, 50%) !important;
+    background: -moz-linear-gradient(top,  hsl($hB,75%,75%) 0%, hsl($hB,47%,62%) 25%, hsl($hB,66%,50%) 25%, hsl($hB,67%,53%) 100%) !important; /* FF3.6+ */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,hsl($hB,75%,75%)), color-stop(25%,hsl($hB,47%,62%)), color-stop(25%,hsl($hB,66%,50%)), color-stop(100%,hsl($hB,67%,53%))) !important; /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(top,  hsl($hB,75%,75%) 0%,hsl($hB,47%,62%) 25%,hsl($hB,66%,50%) 25%,hsl($hB,67%,53%) 100%) !important; /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(top,  hsl($hB,75%,75%) 0%,hsl($hB,47%,62%) 25%,hsl($hB,66%,50%) 25%,hsl($hB,67%,53%) 100%) !important; /* Opera 11.10+ */
+    background: -ms-linear-gradient(top,  hsl($hB,75%,75%) 0%,hsl($hB,47%,62%) 25%,hsl($hB,66%,50%) 25%,hsl($hB,67%,53%) 100%) !important; /* IE10+ */
+    background: linear-gradient(top,  hsl($hB,75%,75%) 0%,hsl($hB,47%,62%) 25%,hsl($hB,66%,50%) 25%,hsl($hB,67%,53%) 100%) !important; /* W3C */
+}
+

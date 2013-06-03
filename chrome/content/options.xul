@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<dialog id="options" title="Preferências - Ferramentas e-Proc"
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    buttons="extra2,accept,cancel,disclosure"
+    buttonlabeldisclosure="Sobre..."
+    buttonlabelextra2="Restaurar valores padrão"
+    ondialogaccept="return Options.ok();"
+    ondialogdisclosure="return showAbout();"
+    ondialogextra2="return Options.defaults();"
+    ondialogcancel="return Options.cancel();"
+    onload="Options.init();">
+    <script type="application/x-javascript" src="chrome://eproc/content/prefman.js"/>
+    <script type="application/x-javascript" src="chrome://eproc/content/options.js"/>
+    <tabbox selectedIndex="0">
+        <tabs>
+            <tab label="Cabeçalho padrão"/>
+            <tab label="e-Proc V1"/>
+            <tab label="e-Proc V2"/>
+        </tabs>
+        <tabpanels>
+            <tabpanel>
+                        <grid width="300">
+                            <columns>
+                                <column flex="1"/>
+                                <column flex="3"/>
+                            </columns>
+                            <rows>
+                                <row align="center">
+                                    <label control="v1_secao" value="1ª linha:"/>
+                                    <textbox id="v1_secao"/>
+                                </row>
+                                <row align="center">
+                                    <label control="v1_subsecao" value="2ª linha:"/>
+                                    <textbox id="v1_subsecao"/>
+                                </row>
+                                <row align="center">
+                                    <label control="v1_vara" value="3ª linha:"/>
+                                    <textbox id="v1_vara"/>
+                                </row>
+                            </rows>
+                        </grid>
+            </tabpanel>
+            <tabpanel>
+                <groupbox>
+                    <caption><checkbox id="v1_enable" label="Habilitar alterações" oncommand="Commands.on_v1_enable();"/></caption>
+                    <checkbox id="v1_consulta_processo_enable" label="Tela de consulta de processos"/>
+                    <checkbox id="v1_html_to_pdf_enable" label="Digitação de documento"/>
+                    <checkbox id="v1_alteracao_assunto_enable" label="Alteração de tipo de ação/assunto"/>
+                    <checkbox id="v1_eproc_enable" label="Demais alterações"/>
+                </groupbox>
+            </tabpanel>
+            <tabpanel>
+                <groupbox>
+                    <caption><checkbox id="v2_enable" label="Habilitar alterações" oncommand="Commands.on_v2_enable();"/></caption>
+                    <grid>
+                        <columns>
+                            <column flex="2"/>
+                            <column flex="2"/>
+                            <column flex="1"/>
+                        </columns>
+                        <rows>
+                            <row>
+                                <checkbox id="v2_ie_enable" label="Abrir Gedpro com Internet Explorer"/>
+                            </row>
+                            <row align="center">
+                                <label id="v2_ielocation_label" control="v2_ielocation" value="Localização do Internet Explorer:"/>
+                                <textbox id="v2_ielocation"/><button id="v2_ielocation_button" label="Procurar..." oncommand="Commands.on_v2_ielocation();"/>
+                            </row>
+                        </rows>
+                    </grid>
+                </groupbox>
+            </tabpanel>
+        </tabpanels>
+    </tabbox>
+</dialog>
