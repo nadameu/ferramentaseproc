@@ -722,7 +722,7 @@ var Eproc = {
 			}
 		}
 		if (windows.length) {
-			var tela = /^\d{7}-\d{2}\.\d{4}\.\d{3}\.\d{4}$/.test(document.title) ? 'Este processo' : 'Esta tela';
+			var tela = /^processo_selecionar/.test(this.acao) ? 'Este processo' : 'Esta tela';
 			var msg = tela + ' possui ' + windows.length + ' ' + (windows.length > 1 ? 'janelas abertas' : 'janela aberta') + '.\nDeseja fechá-' + (windows.length > 1 ? 'las' : 'la') + '?';
 			if (typeof e != 'undefined') {
 				var resposta = GM_yesCancelNo('Janelas abertas', msg);
@@ -1408,20 +1408,6 @@ var Eproc = {
 		var menu = $('#infraMenuRaizes');
 		if (menu) return menu;
 		else return false;
-	},
-	getProcessoF: function()
-	{
-		while (String(this.processo).length < 20)
-			this.processo = '0' + this.processo;
-		return this.processo.substr(0, 7)
-			 + '-'
-			 + this.processo.substr(7, 2)
-			 + '.'
-			 + this.processo.substr(9, 4)
-			 + '.'
-			 + this.processo.substr(13, 3)
-			 + '.'
-			 + this.processo.substr(16, 4);
 	},
 	init: function()
 	{
@@ -2204,7 +2190,6 @@ var Eproc = {
 	},
 	processo_selecionar: function()
 	{
-		document.title = Eproc.getProcessoF();
 		Gedpro.getLinkElement(function(linkGedpro)
 		{
 			var linkCargaDocs;
