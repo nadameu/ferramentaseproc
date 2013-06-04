@@ -1588,8 +1588,7 @@ var Eproc = {
 		}
 		ChromeIcone.prototype = new Icone;
 		var acoes = getAcoes();
-		var storage = unsafeWindow.localStorage;
-		var botoesDesabilitados = ('ch5' in storage) && (storage['ch5'] == 'N');
+		var botoesDesabilitados = Eproc.prefUsuario(5) == 'N';
 		if (acoes && ! botoesDesabilitados) {
 			var fieldset = $('#fldAcoes');
 			var legend = $('legend', fieldset);
@@ -2541,6 +2540,15 @@ var Eproc = {
 			numprocF += d;
 		}
 		return numprocF;
+	},
+	prefUsuario: function(num)
+	{
+		var storage = unsafeWindow.localStorage;
+		if (('ch' + num) in storage) {
+			return storage['ch' + num];
+		} else {
+			return null;
+		}
 	},
 	processo_evento_documento_tooltip_sbfrm: function()
 	{
