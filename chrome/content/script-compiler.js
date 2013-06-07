@@ -221,29 +221,6 @@ var EprocGmCompiler = {
                 FeP.versaoUsuarioCompativel = true;
             }
         };
-        var localStorage = (function(url)
-        {
-            var ios = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
-            var ssm = Components.classes["@mozilla.org/scriptsecuritymanager;1"].getService(Components.interfaces.nsIScriptSecurityManager);
-            var dsm = Components.classes["@mozilla.org/dom/storagemanager;1"].getService(Components.interfaces.nsIDOMStorageManager);
-
-            var uri = ios.newURI(url, "", null);
-            var [,path] = uri.path.split('/');
-            var [host] = /(?:jf(?:pr|rs|sc)|trf4)\.(?:gov|jus)\.br$/.exec(uri.host);
-            url = uri.scheme + '://' + host + '/' + path;
-
-            uri = ios.newURI(url, "", null);
-            var principal = ssm.getCodebasePrincipal(uri);
-            var storage = dsm.getLocalStorageForPrincipal(principal, "");
-
-            return storage;
-        })(url);
-        sandbox.GM_storage = {
-            __exposedProps__: { getItem: 'r', setItem: 'r', removeItem: 'r' },
-            getItem: function(name) { return localStorage.getItem(name); },
-            setItem: function(name, value) { localStorage.setItem(name, value); },
-            removeItem: function(name) { localStorage.removeItem(name); }
-        };
         sandbox.__proto__ = sandbox.window;
 
         try {

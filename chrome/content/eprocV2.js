@@ -457,13 +457,13 @@ var Gedpro = (function()
 	return {
 		error: function(msg)
 		{
-			alert(msg);
+			window.alert(msg);
 			buscando = false;
 		},
 		getDocs: function(pagina)
 		{
 			if (buscando) {
-				alert('A solicitação já foi enviada. Por favor aguarde.');
+				window.alert('A solicitação já foi enviada. Por favor aguarde.');
 				return;
 			}
 			buscando = true;
@@ -662,7 +662,7 @@ var Gedpro = (function()
 			timer = window.setInterval(function()
 			{
 				window.clearInterval(timer);
-				alert(msg);
+				window.alert(msg);
 			}, 100);
 		},
 		popStatus: function()
@@ -1813,7 +1813,7 @@ var Eproc = {
 	{
 		function getCss(name)
 		{
-			var css = atob(GM_getBase64('chrome://eproc/skin/' + name + '.css'));
+			var css = window.atob(GM_getBase64('chrome://eproc/skin/' + name + '.css'));
 			return css;
 		}
 		function getStyleElement(skin)
@@ -2003,7 +2003,7 @@ var Eproc = {
 			this.decorarLinhasTabelaLocalizadores(linhas);
 		}
 		var botao = $('#lnkConfiguracaoSistema');
-		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes3mostradas', false);
+		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes4mostradas', false);
 		if (botao) {
 			if (! novasConfiguracoesMostradas) {
 				var resposta = GM_yesNo('Novas configurações', 'Você deve configurar algumas opções antes de continuar.\n\nDeseja abrir a tela de configurações agora?');
@@ -2289,26 +2289,13 @@ var Eproc = {
 				$$('a[data-doc]', colunaDocumentos).forEach(function(docLink, l, docLinks)
 				{
 					docLink.href += '&titulo_janela=' + encodeURIComponent(tr.cells[tr.cells.length - 5].textContent.trim() + ' - ' + docLink.textContent);
-					docLink.className = 'extraDocLink';
+					docLink.classList.add('extraDocLink');
 					var mime = getLinkMimeType(docLink);
 					if (mime) {
 						if (! isEmbeddable(mime)) {
 							docLink.href = docLink.href.replace('?acao=acessar_documento&', '?acao=acessar_documento_implementacao&');
 						}
 						docLink.href += '&tipo_doc=' + mime;
-						mime = mime.toUpperCase();
-						if (! (mime in iconTrueColor)) {
-							mime = 'N/A';
-						}
-						var img = $('img', docLink);
-						if (img) {
-							img.src = iconTrueColor[mime];
-						} else {
-							img = docLink.previousSibling;
-							if (('tagName' in img) && (img.tagName.toUpperCase() == 'IMG')) { 
-								img.src = iconTrueColor[mime];
-							}
-						}
 					}
 					var size = docLink.getAttribute('data-bytes');
 					if (size) {
@@ -2677,10 +2664,10 @@ var Eproc = {
 		});
 
 		var botao = $('#lnkConfiguracaoSistema');
-		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes3mostradas', false);
+		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes4mostradas', false);
 		if (botao && !novasConfiguracoesMostradas) {
-			alert('Por favor, verifique se todas as configurações estão de acordo com suas preferências.');
-			var novasConfiguracoesMostradas = GM_setValue('v2.novasconfiguracoes3mostradas', true);
+			window.alert('Por favor, verifique se todas as configurações estão de acordo com suas preferências.');
+			var novasConfiguracoesMostradas = GM_setValue('v2.novasconfiguracoes4mostradas', true);
 			var tooltip = new Tooltip('Este ícone permite acessar novamente as configurações a qualquer momento.');
 			tooltip.vincular(botao);
 			window.addEventListener('resize', tooltip.desenhar, false);
