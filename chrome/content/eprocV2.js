@@ -2627,7 +2627,8 @@ var Eproc = {
 					document.getElementsByName('acao')[0].value = acao;
 					salvarMemo();
 					window.close();
-					unsafeWindow.parent.ocultarSubForm();
+					var btnFechar = document.getElementsByName('btnFechar')[0];
+					Eproc.clicar(btnFechar);
 				}
 			}, false);
 			elemento.removeAttribute('onclick');
