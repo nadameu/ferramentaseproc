@@ -1030,7 +1030,7 @@ var Eproc = {
 			onClick: function(e)
 			{
 				var oTexto = unsafeWindow.FCKeditorAPI.GetInstance('txt_fck');
-				if (!oTexto.IsDirty() || confirm('Todo o texto já digitado será apagado.\nConfirma?')) {
+				if (!oTexto.IsDirty() || window.confirm('Todo o texto já digitado será apagado.\nConfirma?')) {
 					var sTexto = '<html lang="pt-BR" dir="ltr">\n';
 					sTexto += '  <head>\n';
 					sTexto += '    <title>' + this.titulo.replace(/<[^>]+>/g, '') + '</title>\n';
@@ -1149,7 +1149,7 @@ var Eproc = {
 				var me = this;
 				button.addEventListener('click', function(e)
 				{
-					if (confirm('Deseja tornar o perfil "' + me + '" o padrão para os próximos logins neste computador?')) {
+					if (window.confirm('Deseja tornar o perfil "' + me + '" o padrão para os próximos logins neste computador?')) {
 						me.definirComoPadrao();
 					} else {
 						e.preventDefault();
@@ -2605,7 +2605,7 @@ var Eproc = {
 			var acaoDesativar = 'processo_evento_documento_tooltip_sbfrm_desativar';
 			var condicaoDesativar = function()
 			{
-				return confirm('Confirma desativação do Memo deste documento ?');
+				return window.confirm('Confirma desativação do Memo deste documento ?');
 			};
 			ajustarAcoesBotao(btn, condicaoDesativar, acaoDesativar);
 		});
