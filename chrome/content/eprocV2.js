@@ -1091,7 +1091,7 @@ var Eproc = {
 		new BotaoDigitacao('Ato Ordinatório', 'ATO ORDINATÓRIO', 'De ordem do MM. Juiz Federal, .', '109').insertBefore(document.body.firstChild);
 		new BotaoDigitacao('Ato de Secretaria', 'ATO DE SECRETARIA', 'De ordem do MM. Juiz Federal, a Secretaria da Vara .', '18').insertBefore(document.body.firstChild);
 
-		unsafeWindow.FCKeditor_OnComplete = function(ed)
+		var corrigir = function(ed)
 		{
 			ed.Config.FullPage = true;
 			ed.Config.ToolbarSets['eProcv2custom'] = [
@@ -1105,6 +1105,14 @@ var Eproc = {
 			];
 			ed.ToolbarSet.Load('eProcv2custom');
 		};
+		var command = (function(editor)
+		{
+			return function()
+			{
+				corrigir.call(null, editor);
+			};
+		}(unsafeWindow.FCKeditorAPI.GetInstance('txt_fck')));
+		window.addEventListener('load', command, false);
 	},
 	entrar: function()
 	{
