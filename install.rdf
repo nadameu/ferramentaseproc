@@ -20,5 +20,5 @@
   <RDF:Description RDF:about="rdf:#$S+VZy"
                    em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
                    em:minVersion="12.0"
-                   em:maxVersion="26.*" />
+                   em:maxVersion="27.*" />
 </RDF:RDF>
