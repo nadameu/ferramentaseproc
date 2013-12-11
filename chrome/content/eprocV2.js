@@ -242,7 +242,8 @@ var Gedpro = (function()
 		5: 'Devolvido',
 		6: 'Arquivado',
 		7: 'Anulado',
-		8: 'Conferido'
+		8: 'Conferido',
+		9: 'Para conferir'
 	};
 	var GedproProcesso = function(reg)
 	{
