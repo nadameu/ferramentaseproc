@@ -1078,40 +1078,22 @@ var Eproc = {
 				}
 			}
 		};
-		if (screen.availWidth >= 780 && screen.availHeight >= 630) {
-			var w = 780;
-			var h = Math.floor((screen.availHeight - 30) / 100) * 100 + 30;
-			$('#txt_fck___Frame').height = h - 330;
-			window.moveTo((screen.availWidth - w) / 2, (screen.availHeight - h) / 2);
-			window.resizeTo(w, h);
-		}
-		document.body.insertBefore(document.createTextNode(' '), document.body.firstChild);
-		new BotaoDigitacao('Sentença', 'SENTENÇA', 'TextoDaSentença', '14').insertBefore(document.body.firstChild);
-		new BotaoDigitacao('Despacho', 'DESPACHO', 'TextoDoDespacho', '15').insertBefore(document.body.firstChild);
-		new BotaoDigitacao('Decisão', 'DECISÃO', 'TextoDaDecisão', '32').insertBefore(document.body.firstChild);
-		new BotaoDigitacao('Certidão', 'CERTIDÃO', 'CERTIFICO que .', '16').insertBefore(document.body.firstChild);
-		new BotaoDigitacao('Ato Ordinatório', 'ATO ORDINATÓRIO', 'De ordem do MM. Juiz Federal, .', '109').insertBefore(document.body.firstChild);
-		new BotaoDigitacao('Ato de Secretaria', 'ATO DE SECRETARIA', 'De ordem do MM. Juiz Federal, a Secretaria da Vara .', '18').insertBefore(document.body.firstChild);
+		var titulo = $('#titulo_editor');
+		titulo.parentNode.insertBefore(document.createElement('p'), titulo.nextSibling);
+		new BotaoDigitacao('Sentença', 'SENTENÇA', 'TextoDaSentença', '14').insertBefore(titulo.nextSibling);
+		new BotaoDigitacao('Despacho', 'DESPACHO', 'TextoDoDespacho', '15').insertBefore(titulo.nextSibling);
+		new BotaoDigitacao('Decisão', 'DECISÃO', 'TextoDaDecisão', '32').insertBefore(titulo.nextSibling);
+		new BotaoDigitacao('Certidão', 'CERTIDÃO', 'CERTIFICO que .', '16').insertBefore(titulo.nextSibling);
+		new BotaoDigitacao('Ato Ordinatório', 'ATO ORDINATÓRIO', 'De ordem do MM. Juiz Federal, .', '109').insertBefore(titulo.nextSibling);
+		new BotaoDigitacao('Ato de Secretaria', 'ATO DE SECRETARIA', 'De ordem do MM. Juiz Federal, a Secretaria da Vara .', '18').insertBefore(titulo.nextSibling);
+		titulo.parentNode.insertBefore(document.createElement('p'), titulo.nextSibling);
 
 		var corrigido = false;
 		var corrigir = unsafeWindow.FCKeditor_OnComplete = function(ed)
 		{
 			if (corrigido) return;
 			ed.Config.FullPage = true;
-			try {
-				ed.Config.ToolbarSets['eProcv2custom'] = [
-					['Cut','Copy','Paste','PasteText','PasteWord'],
-					['Undo','Redo'],
-					['Bold','Italic','Underline'],
-					['JustifyLeft','JustifyCenter','JustifyRight','JustifyFull'],
-					['OrderedList','UnorderedList'],
-					['TextColor'],
-					['Source']
-				];
-				ed.ToolbarSet.Load('eProcv2custom');
-				corrigido = true;
-			} catch (ex) {
-			}
+			corrigido = true;
 		};
 		var command = function()
 		{
