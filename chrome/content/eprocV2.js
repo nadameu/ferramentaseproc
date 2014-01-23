@@ -59,7 +59,7 @@ function CheckBox(preferencia, texto)
 				return GM_setValue(preferencia, valor);
 			} else {
 				return GM_getValue(preferencia, false);
-			}        
+			}
 		}
 	});
 
@@ -150,7 +150,7 @@ var Gedpro = (function()
 	GedproIcone.ARQUIVOS = {
 		'iWO': 'Word',
 		'iPO': 'Papiro',
-		'PDF': 'pdfgedpro',                                    
+		'PDF': 'pdfgedpro',
 		'iPF': 'PastaAberta',
 		'iL+': 'L-',
 		'iT+': 'T-',
@@ -646,7 +646,7 @@ var Gedpro = (function()
 					onload: function(obj)
 					{
 						Gedpro.popStatus();
-						var parser = new DOMParser();  
+						var parser = new DOMParser();
 						var xml = parser.parseFromString(obj.responseText, "application/xml");
 						callback(xml);
 					},
@@ -1307,7 +1307,7 @@ var Eproc = {
 				getIcone = function() { return icone; };
 				return getIcone();
 			}
-			
+
 			this.addToLink = function(link)
 			{
 				link.insertBefore(getIcone(), link.firstChild);
@@ -1636,7 +1636,7 @@ var Eproc = {
 						window.open(linkProcesso);
 					});
 				}
-			}                            
+			}
 		});
 		table.parentNode.insertBefore(link, table);
 	},
@@ -1649,7 +1649,7 @@ var Eproc = {
 				voltar.setAttribute('onclick', 'location.href="' + document.referrer + '";');
 			});
 		}
-	},        
+	},
 	prevencao_judicial_bloco: function()
 	{
 		var buscarForm = $('#frmProcessoLista');
