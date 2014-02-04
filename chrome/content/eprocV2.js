@@ -1087,6 +1087,7 @@ var Eproc = {
 		new BotaoDigitacao('Ato Ordinatório', 'ATO ORDINATÓRIO', 'De ordem do MM. Juiz Federal, .', '109').insertBefore(titulo.nextSibling);
 		new BotaoDigitacao('Ato de Secretaria', 'ATO DE SECRETARIA', 'De ordem do MM. Juiz Federal, a Secretaria da Vara .', '18').insertBefore(titulo.nextSibling);
 		titulo.parentNode.insertBefore(document.createElement('p'), titulo.nextSibling);
+		unsafeWindow.resizeEditor();
 
 		var corrigido = false;
 		var corrigir = unsafeWindow.FCKeditor_OnComplete = function(ed)
