@@ -1073,7 +1073,8 @@ var Eproc = {
 					sTexto += '    <p class="signature" align="center">documento assinado eletronicamente</p>\n';
 					sTexto += '</body>\n';
 					sTexto += '</html>\n';
-					oTexto.SetHTML(sTexto, true);
+					unsafeWindow.novoTextoDocumento = sTexto;
+					unsafeWindow.timerFuncaoTemporaria = unsafeWindow.setTimeout('FCKeditorAPI.GetInstance("txt_fck").SetHTML(novoTextoDocumento, true); novoTextoDocumento = null; clearTimeout(timerFuncaoTemporaria);', 0);
 					$('#selTipoArquivo').value = this.tipo;
 				}
 			}
