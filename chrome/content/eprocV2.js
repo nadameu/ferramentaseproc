@@ -825,6 +825,13 @@ var Eproc = {
 	},
 	modificarTabelaProcessos: function()
 	{
+		(function() {
+			var links = $$('table a[href^="controlador.php?acao=processo_selecionar&"]');
+			if (links.length > 1) {
+				for (var table = links[0].parentNode; table.tagName.toUpperCase() != 'TABLE'; table = table.parentNode);
+				Eproc.permitirAbrirEmAbas(table);
+			}
+		})();
 		var findTh = function(campo, texto)
 		{
 			var th = null, setas = $$('a[onclick="infraAcaoOrdenar(\'' + campo + '\',\'ASC\');"]');
@@ -870,7 +877,6 @@ var Eproc = {
 			while (table.tagName.toLowerCase() != 'table') {
 				table = table.parentNode;
 			}
-			Eproc.permitirAbrirEmAbas(table);
 			table.setAttribute('width', '');
 			$$('th', table).forEach(function(th, h)
 			{
