@@ -2044,9 +2044,6 @@ var Eproc = {
 					docLink.classList.add('extraDocLink');
 					var mime = getLinkMimeType(docLink);
 					if (mime) {
-						if (! isEmbeddable(mime)) {
-							docLink.href = docLink.href.replace('?acao=acessar_documento&', '?acao=acessar_documento_implementacao&');
-						}
 						docLink.href += '&tipo_doc=' + mime;
 					}
 					var size = docLink.getAttribute('data-bytes');
@@ -2097,15 +2094,6 @@ var Eproc = {
 			{
 				var type = docLink.getAttribute('data-mimetype');
 				return type ? type.toUpperCase() : 'PDF';
-			}
-			function isEmbeddable(mime)
-			{
-				if (mime == 'PDF') {
-					var mimetype = navigator.mimeTypes.namedItem('application/pdf');
-					if (mimetype) return mimetype.enabledPlugin;
-					return false;
-				}
-				return /^(TXT|PDF|GIF|JPEG|JPG|PNG|HTM|HTML)$/.exec(mime);
 			}
 		}
 		var tableRelacionado = $('#tableRelacionado');
