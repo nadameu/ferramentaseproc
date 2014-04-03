@@ -10,16 +10,7 @@ var httpRequestObserver = {
             if (typeof Components == 'undefined') return;
             var httpChannel = subject.QueryInterface(Components.interfaces.nsIHttpChannel);
             var uri = new Uri(httpChannel.name);
-            if (uri.isV2() && uri.getControlador() == 'controlador' && /^acao=acessar_documento_(implementacao|publico)/.test(uri.getQuery())) {
-                var titulo = uri.getQuery().match(/&titulo_janela=([^&]+)/);
-                var extension = uri.getQuery().match(/&tipo_doc=([^&]+)/);
-                if (titulo && extension) {
-                    replacePattern = 'filename="' + decodeURIComponent(titulo[1]).replace(/ /g, '_').replace('_-_', '-') + '.' + extension[1] + '"';
-                } else {
-                    replacePattern = 'filename="$1"';
-                }
-                httpChannel.setResponseHeader('Content-Disposition', httpChannel.getResponseHeader('Content-Disposition').replace(/filename=([^"]*)$/, replacePattern), false);
-            } else if (uri.isV1() && /^download\//.test(uri.getArquivo())) {
+            if (uri.isV1() && /^download\//.test(uri.getArquivo())) {
                 httpChannel.setResponseHeader('Content-Disposition', 'inline', false);
             }
         }

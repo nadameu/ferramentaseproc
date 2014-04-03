@@ -696,17 +696,6 @@ var Eproc = {
 	pagina: '',
 	processo: 0,
 	windows: [],
-	acessar_documento: function()
-	{
-		var m;
-		if (m = location.search.match(/\&titulo_janela=([^&]+)/)) {
-			document.title = decodeURIComponent(m[1]);
-		}
-	},
-	acessar_documento_publico: function()
-	{
-		this.acessar_documento();
-	},
 	clicar: function(elemento)
 	{
 		var evento = document.createEvent('MouseEvents');
@@ -2040,12 +2029,7 @@ var Eproc = {
 				var colunaDocumentos = tr.cells[tr.cells.length - 1];
 				$$('a[data-doc]', colunaDocumentos).forEach(function(docLink, l, docLinks)
 				{
-					docLink.href += '&titulo_janela=' + encodeURIComponent(tr.cells[tr.cells.length - 5].textContent.trim() + ' - ' + docLink.textContent);
 					docLink.classList.add('extraDocLink');
-					var mime = getLinkMimeType(docLink);
-					if (mime) {
-						docLink.href += '&tipo_doc=' + mime;
-					}
 					var size = docLink.getAttribute('data-bytes');
 					if (size) {
 						if (docLink.hasAttribute('onmouseover')) {
