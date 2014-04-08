@@ -815,11 +815,13 @@ var Eproc = {
 	modificarTabelaProcessos: function()
 	{
 		(function() {
-			var links = $$('table a[href^="controlador.php?acao=processo_selecionar&"]');
-			if (links.length > 1) {
-				for (var table = links[0].parentNode; table.tagName.toUpperCase() != 'TABLE'; table = table.parentNode);
-				Eproc.permitirAbrirEmAbas(table);
-			}
+			$$('table').forEach(function(table) {
+				var links = $$('a[href^="controlador.php?acao=processo_selecionar&"]', table);
+				var inputs = $$('input[type="checkbox"]', table);
+				if (links.length > 1 && links.length == inputs.length) {
+					Eproc.permitirAbrirEmAbas(table);
+				}
+			});
 		})();
 		var findTh = function(campo, texto)
 		{
@@ -1614,7 +1616,7 @@ var Eproc = {
 	},
 	permitirAbrirEmAbas: function(table)
 	{
-		if ($$('a[href^="controlador.php?acao=processo_selecionar&"]').length <= 1) {
+		if ($$('a[href^="controlador.php?acao=processo_selecionar&"]', table).length <= 1) {
 			return;
 		}
 		var link = new VirtualLink('Abrir os processos selecionados em abas/janelas', function(e)
@@ -1635,7 +1637,10 @@ var Eproc = {
 				}
 			}
 		});
-		table.parentNode.insertBefore(link, table);
+		var div = document.createElement('div');
+		div.style.margin = '.5em 0';
+		div.appendChild(link);
+		table.parentNode.insertBefore(div, table);
 	},
 	prevencao_judicial: function()
 	{
