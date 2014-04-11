@@ -103,4 +103,16 @@ function EprocPreferences() {
                 .removeObserver(prefName, observers[watcher]);
         }
     }
+
+    var defaultValue = (navigator.userAgent.indexOf('WOW64') > -1)
+        ? 'C:\\Arquivos de programas (x86)\\Internet Explorer\\iexplore.exe'
+        : 'C:\\Arquivos de programas\\Internet Explorer\\iexplore.exe';
+
+    var userValue = pref.prefHasUserValue('v2.ielocation')
+        ? this.getValue('v2.ielocation')
+        : defaultValue;
+
+    defaults.deleteBranch('v2.ielocation');
+    defaults.setCharPref('v2.ielocation', defaultValue);
+    pref.setCharPref('v2.ielocation', userValue);
 }
