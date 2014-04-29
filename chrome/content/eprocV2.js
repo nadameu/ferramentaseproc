@@ -921,7 +921,7 @@ var Eproc = {
 		extra.innerHTML = 'div.infraAreaDados { height: auto !important; overflow: inherit; }';
 		extra.innerHTML += rule;
 	},
-	digitar_documento: function()
+	digitar_documento_vara_nao_piloto: function()
 	{
 		if (null == $('#txt_fck___Frame')) return;
 		var infoWindow = getInfoWindow();
