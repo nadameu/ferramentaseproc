@@ -1,26 +1,11 @@
 var EprocChrome = {};
 
-(function(){
-    function defineLazyGetter(moduleName)
-    {
-        var ec = EprocChrome;
-        ec.__defineGetter__(moduleName, function()
-        {
-            delete ec[moduleName];
-            Cu['import']('resource://eproc/' + moduleName + '.jsm', ec);
-            return ec[moduleName];
-        });
-    }
-    defineLazyGetter('Base64');
-    defineLazyGetter('MD5');
-    defineLazyGetter('Uri');
-    setLazyGetter('httpRequestObserver');
-    setLazyGetter('EprocPreferences');
-})();
-function setLazyGetter(module)
-{
-    Cu['import']('resource://eproc/' + module + '.jsm');
-}
+Cu['import']('resource://gre/modules/XPCOMUtils.jsm');
+XPCOMUtils.defineLazyModuleGetter(EprocChrome, 'MD5', 'resource://eproc/MD5.jsm');
+XPCOMUtils.defineLazyModuleGetter(EprocChrome, 'Uri', 'resource://eproc/Uri.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'httpRequestObserver', 'resource://eproc/httpRequestObserver.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'EprocPreferences', 'resource://eproc/EprocPreferences.jsm');
+
 var showPreferences = function()
 {
     openDialog('chrome://eproc/content/options.xul', 'eproc-options', 'chrome,centerscreen,modal');
@@ -95,7 +80,7 @@ var EprocGmCompiler = {
     getUrlContentsAsBase64: function(aUrl)
     {
         var str = this.getContents(aUrl, true);
-        return EprocChrome.Base64.encode(str);
+        return btoa(str);
     },
 
     isGreasemonkeyable: function(url)
