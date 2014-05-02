@@ -1,3 +1,4 @@
+Components.utils['import']('resource://eproc/EprocPreferences.jsm');
 var showAbout = function()
 {
     try {
@@ -67,7 +68,7 @@ var Options = {
     },
     
     init: function() {
-        this.prefs = new EprocPreferences();
+        this.prefs = EprocPreferences;
         this.options = [
             'v1.enable',
             'v1.consulta_processo.enable',

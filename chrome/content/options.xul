@@ -10,7 +10,6 @@
     ondialogextra2="return Options.defaults();"
     ondialogcancel="return Options.cancel();"
     onload="Options.init();">
-    <script type="application/x-javascript" src="chrome://eproc/content/prefman.js"/>
     <script type="application/x-javascript" src="chrome://eproc/content/options.js"/>
     <tabbox selectedIndex="0">
         <tabs>

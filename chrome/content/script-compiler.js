@@ -15,6 +15,7 @@ var EprocChrome = {};
     defineLazyGetter('MD5');
     defineLazyGetter('Uri');
     setLazyGetter('httpRequestObserver');
+    setLazyGetter('EprocPreferences');
 })();
 function setLazyGetter(module)
 {
@@ -29,7 +30,7 @@ var IELauncher = function(url)
 {
     // create an nsILocalFile for the executable
     var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-    var prefs = new EprocPreferences();
+    var prefs = EprocPreferences;
     file.initWithPath(prefs.getValue('v2.ielocation'));
 
     // create an nsIProcess
@@ -112,7 +113,7 @@ var EprocGmCompiler = {
         var href = new XPCNativeWrapper(unsafeLoc, "href").href;
 
         if (EprocGmCompiler.isGreasemonkeyable(href)) {
-            var prefs = new EprocPreferences();
+            var prefs = EprocPreferences;
             var scriptPath = false;
             var uri = new EprocChrome.Uri(href);
             if (uri.isV1()) {
@@ -355,7 +356,7 @@ var EprocGmCompiler = {
 
 function EprocScriptStorage()
 {
-    var prefMan = new EprocPreferences();
+    var prefMan = EprocPreferences;
     this.setValue = function(name, val)
     {
         prefMan.setValue(name, val);

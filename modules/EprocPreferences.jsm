@@ -1,23 +1,24 @@
-function EprocPreferences() {
-    var startPoint="eproc.";
+var EXPORTED_SYMBOLS = [ 'EprocPreferences' ];
+var startPoint="eproc.";
 
-    var pref=Components.classes["@mozilla.org/preferences-service;1"].
-        getService(Components.interfaces.nsIPrefService).
-        getBranch(startPoint);
+var pref=Components.classes["@mozilla.org/preferences-service;1"]
+    .getService(Components.interfaces.nsIPrefService)
+    .getBranch(startPoint);
 
-    var defaults=Components.classes["@mozilla.org/preferences-service;1"].
-        getService(Components.interfaces.nsIPrefService).
-        getDefaultBranch(startPoint);
+var defaults=Components.classes["@mozilla.org/preferences-service;1"]
+    .getService(Components.interfaces.nsIPrefService)
+    .getDefaultBranch(startPoint);
 
-    var observers={};
+var observers={};
 
+var EprocPreferences = {
     // whether a preference exists
-    this.exists=function(prefName) {
+    exists: function(prefName) {
         return pref.getPrefType(prefName) != 0;
-    }
+    },
 
     // returns the named preference, or defaultValue if it does not exist
-    this.getValue=function(prefName, defaultValue) {
+    getValue: function(prefName, defaultValue) {
         if (pref.prefHasUserValue(prefName)) {
             var prefType=pref.getPrefType(prefName);
             switch (prefType) {
@@ -27,24 +28,24 @@ function EprocPreferences() {
                 case pref.PREF_INVALID: window.alert('Valor inválido para a preferência "' + prefName + '"!');
             }
         } else {
-            return this.getDefaultValue(prefName, defaultValue);
+            return EprocPreferences.getDefaultValue(prefName, defaultValue);
         }
-    }
+    },
 
 
     // returns the default value or the preference
-    this.getDefaultValue=function(prefName, defaultValue) {
+    getDefaultValue: function(prefName, defaultValue) {
         switch (defaults.getPrefType(prefName)) {
             case defaults.PREF_STRING: return defaults.getCharPref(prefName);
             case defaults.PREF_BOOL: return defaults.getBoolPref(prefName);
             case defaults.PREF_INT: return defaults.getIntPref(prefName);
             case defaults.PREF_INVALID: return (typeof defaultValue != 'undefined') ? defaultValue : window.alert('Valor inválido para a preferência "' + prefName + '"!');
         }
-    }
+    },
 
     // sets the named preference to the specified value. values must be strings,
     // booleans, or integers.
-    this.setValue=function(prefName, value) {
+    setValue: function(prefName, value) {
         var prefType=typeof(value);
 
         switch (prefType) {
@@ -63,8 +64,8 @@ function EprocPreferences() {
         // underlying preferences object throws an exception if new pref has a
         // different type than old one. i think we should not do this, so delete
         // old pref first if this is the case.
-        if (this.exists(prefName) && prefType != typeof(this.getValue(prefName))) {
-            this.remove(prefName);
+        if (EprocPreferences.exists(prefName) && prefType != typeof(EprocPreferences.getValue(prefName))) {
+            EprocPreferences.remove(prefName);
         }
 
         // set new value using correct method
@@ -73,15 +74,15 @@ function EprocPreferences() {
             case "boolean": pref.setBoolPref(prefName, value); break;
             case "number": pref.setIntPref(prefName, Math.floor(value)); break;
         }
-    }
+    },
 
     // deletes the named preference or subtree
-    this.remove=function(prefName) {
+    remove: function(prefName) {
         pref.deleteBranch(prefName);
-    }
+    },
 
     // call a function whenever the named preference subtree changes
-    this.watch=function(prefName, watcher) {
+    watch: function(prefName, watcher) {
         // construct an observer
         var observer={
             observe:function(subject, topic, prefName) {
@@ -94,25 +95,36 @@ function EprocPreferences() {
 
         pref.QueryInterface(Components.interfaces.nsIPrefBranchInternal).
             addObserver(prefName, observer, false);
-    }
+    },
 
     // stop watching
-    this.unwatch=function(prefName, watcher) {
+    unwatch: function(prefName, watcher) {
         if (observers[watcher]) {
             pref.QueryInterface(Components.interfaces.nsIPrefBranchInternal)
                 .removeObserver(prefName, observers[watcher]);
         }
     }
+};
 
-    var defaultValue = (navigator.userAgent.indexOf('WOW64') > -1)
-        ? 'C:\\Arquivos de programas (x86)\\Internet Explorer\\iexplore.exe'
-        : 'C:\\Arquivos de programas\\Internet Explorer\\iexplore.exe';
+(function corrigirEnderecoIE() {
+
+    var env = Components.classes["@mozilla.org/process/environment;1"]
+      .getService(Components.interfaces.nsIEnvironment);
+
+    var defaultFolder = 'C:\\Arquivos de programas';
+    if (env.exists('ProgramFiles(x86)')) {
+        defaultFolder = env.get('ProgramFiles(x86)');
+    } else if (env.exists('ProgramFiles')) {
+        defaultFolder = env.get('ProgramFiles');
+    }
+    var defaultValue = defaultFolder + '\\Internet Explorer\\iexplore.exe';
 
     var userValue = pref.prefHasUserValue('v2.ielocation')
-        ? this.getValue('v2.ielocation')
+        ? EprocPreferences.getValue('v2.ielocation')
         : defaultValue;
 
     defaults.deleteBranch('v2.ielocation');
     defaults.setCharPref('v2.ielocation', defaultValue);
     pref.setCharPref('v2.ielocation', userValue);
-}
+
+})();
