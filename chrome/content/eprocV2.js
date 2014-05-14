@@ -1930,6 +1930,10 @@ var Eproc = {
 		}, false);
 		fieldset.appendChild(selCor);
 	},
+	processo_lembrete_destino_cadastrar_bloco_subfrm: function()
+	{
+		this.processo_lembrete_destino_cadastrar();
+	},
 	processo_seleciona_publica: function()
 	{
 		this.processo_selecionar();
