@@ -1885,6 +1885,7 @@ var Eproc = {
 	processo_lembrete_destino_cadastrar: function()
 	{
 		var descricao = $('#txaDescricao');
+		if (! descricao) return;
 		descricao.name = '';
 		var props = Eproc.getHiddenProps(descricao.textContent);
 		descricao.value = props.clean;
