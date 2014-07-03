@@ -12,8 +12,8 @@
                    em:updateURL="http://eproc.trf4.jus.br/eproc2trf4/ferramentas/plugin/repo/update.rdf"
                    em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDf0wty4meGsDmIrOYWRO7ZuJaYDqZnZ4dsCocUoXSB8mve+34VIAcrupkPGvaau3+TgH8fvtjOuF6g3g2XpD/cU/J8mMN8tAS5l0IG3ySGXug5NMVZ0uiq4T0vfy4T+i97NR+GbouIX/D6X8XZIOemGEIS6Uca6ff3OOrq/3EIlQIDAQAB">
     <em:optionsURL>chrome://eproc/content/options.xul</em:optionsURL>
-    <em:developer>Paulo Roberto Maurici Junior &lt;pmj@jfsc.jus.br&gt;</em:developer>
-    <em:developer>Felipe Raul Benali &lt;rbb@jfpr.jus.br&gt;</em:developer>
+    <em:developer>Paulo Roberto Maurici Junior &lt;prm@jfpr.jus.br&gt;</em:developer>
+    <em:developer>Felipe Raul Benali</em:developer>
     <em:contributor>Greasemonkey Compiler by Anthony Lieuallen &lt;http://arantius.com/&gt;</em:contributor>
     <em:targetApplication RDF:resource="rdf:#$S+VZy"/>
   </RDF:Description>
