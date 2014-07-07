@@ -923,7 +923,7 @@ var Eproc = {
 	},
 	digitar_documento_vara_nao_piloto: function()
 	{
-		if (null == $('#txt_fck___Frame')) return;
+		if (null === $('#titulo_editor')) return;
 		var infoWindow = getInfoWindow();
 		if (infoWindow) {
 			var info = getInfo(infoWindow), processo;
@@ -1027,9 +1027,9 @@ var Eproc = {
 			},
 			onClick: function(e)
 			{
-				var oTexto = unsafeWindow.FCKeditorAPI.GetInstance('txt_fck');
+				var oTexto = unsafeWindow.CKEDITOR.instances.txt_fck;
 				corrigir.call(null, oTexto);
-				if (!oTexto.IsDirty() || window.confirm('Todo o texto já digitado será apagado.\nConfirma?')) {
+				if (!oTexto.checkDirty() || window.confirm('Todo o texto já digitado será apagado.\nConfirma?')) {
 					var sTexto = '<html lang="pt-BR" dir="ltr">\n';
 					sTexto += '  <head>\n';
 					sTexto += '    <title>' + this.titulo.replace(/<[^>]+>/g, '') + '</title>\n';
@@ -1070,8 +1070,10 @@ var Eproc = {
 					sTexto += '    <p class="signature" align="center">documento assinado eletronicamente</p>\n';
 					sTexto += '</body>\n';
 					sTexto += '</html>\n';
-					unsafeWindow.novoTextoDocumento = sTexto;
-					unsafeWindow.timerFuncaoTemporaria = unsafeWindow.setTimeout('FCKeditorAPI.GetInstance("txt_fck").SetHTML(novoTextoDocumento, true); novoTextoDocumento = null; clearTimeout(timerFuncaoTemporaria);', 0);
+					oTexto.setData(sTexto, function() {
+						oTexto.updateElement();
+						oTexto.resetDirty();
+					});
 					$('#selTipoArquivo').value = this.tipo;
 				}
 			}
@@ -1085,19 +1087,18 @@ var Eproc = {
 		new BotaoDigitacao('Ato Ordinatório', 'ATO ORDINATÓRIO', 'De ordem do MM. Juiz Federal, .', '109').insertBefore(titulo.nextSibling);
 		new BotaoDigitacao('Ato de Secretaria', 'ATO DE SECRETARIA', 'De ordem do MM. Juiz Federal, a Secretaria da Vara .', '18').insertBefore(titulo.nextSibling);
 		titulo.parentNode.insertBefore(document.createElement('p'), titulo.nextSibling);
-		unsafeWindow.resizeEditor();
 
 		var corrigido = false;
-		var corrigir = unsafeWindow.FCKeditor_OnComplete = function(ed)
+		var corrigir = function(ed)
 		{
 			if (corrigido) return;
-			ed.Config.FullPage = true;
+			ed.config.fullPage = true;
 			corrigido = true;
 		};
 		var command = function()
 		{
-			if ('FCKeditorAPI' in unsafeWindow) {
-				corrigir.call(null, unsafeWindow.FCKeditorAPI.GetInstance('txt_fck'));
+			if ('CKEDITOR' in unsafeWindow) {
+				corrigir.call(null, unsafeWindow.CKEDITOR.instances.txt_fck);
 			}
 		};
 		window.addEventListener('load', command, false);
