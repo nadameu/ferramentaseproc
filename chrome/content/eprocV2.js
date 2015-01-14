@@ -1176,9 +1176,9 @@ var Eproc = {
 		if (window.wrappedJSObject.FeP) {
 			GM_analisarVersao(window.wrappedJSObject.FeP);
 		}
-		this.pagina = location.pathname.split('/eprocV2/')[1];
+		this.pagina = window.location.pathname.split('/eprocV2/')[1];
 		this.parametros = {};
-		for (var p = 0, params = location.search.split('?').splice(0).join('').split('&'), param; (p < params.length) && (param = params[p]); p++) {
+		for (var p = 0, params = window.location.search.split('?').splice(0).join('').split('&'), param; (p < params.length) && (param = params[p]); p++) {
 			var nameValue = param.split('=');
 			this.parametros[nameValue[0]] = nameValue[1];
 		}
@@ -1755,7 +1755,7 @@ var Eproc = {
 			if (! novasConfiguracoesMostradas) {
 				var resposta = GM_yesNo('Novas configurações', 'Você deve configurar algumas opções antes de continuar.\n\nDeseja abrir a tela de configurações agora?');
 				if (resposta == 'YES') {
-					location.href = botao.href;
+					window.location.href = botao.href;
 				}
 			}
 			var xhr = new XMLHttpRequest();
@@ -1792,7 +1792,7 @@ var Eproc = {
 			if (processos > 0) {
 				linha.addEventListener('click', function(e)
 				{
-					location.href = url;
+					window.location.href = url;
 				}, false);
 			}
 		});
@@ -1835,7 +1835,7 @@ var Eproc = {
 	processo_consulta_listar: function()
 	{
 		var form = $('#frmProcessoEventoLista');
-		form.action = location.pathname + location.search;
+		form.action = window.location.pathname + window.location.search;
 		var docsGedpro = $('#divDocumentosGedpro');
 		if (docsGedpro) {
 			var linkSecao = $('#divInfraBarraTribunalE').getElementsByTagName('a')[0];
@@ -2157,7 +2157,7 @@ var Eproc = {
 	getEstado: function()
 	{
 		var linkSecao = $('#divInfraBarraTribunalE a');
-		var estado = (linkSecao ? linkSecao.hostname : location.hostname).match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/);
+		var estado = (linkSecao ? linkSecao.hostname : window.location.hostname).match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/);
 		if (estado) return estado[1];
 		else return null;
 	},
