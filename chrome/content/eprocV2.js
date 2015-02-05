@@ -1405,7 +1405,7 @@ var Eproc = {
 				}
 				var acaoControlador = /\?acao=([^&]+)/.exec(acao.href);
 				var destacar = false, dispararOriginal = false;
-				if (acaoControlador.length == 2) {
+				if (acaoControlador && acaoControlador.length == 2) {
 					var icone = null;
 					switch (acaoControlador[1]) {
 						case 'acessar_processo_gedpro':
