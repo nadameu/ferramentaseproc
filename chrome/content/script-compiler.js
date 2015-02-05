@@ -218,7 +218,10 @@ var EprocGmCompiler = {
             var e2 = new Error(typeof e=="string" ? e : e.message);
             e2.fileName = scriptPath;
             e2.lineNumber = typeof e=="string" ? 0 : e.lineNumber;
-            alert(e2);
+            var showErrorMessages = getBrowser().mPrefs.getBoolPref("eproc.showErrorMessages");
+            if (showErrorMessages) {
+                alert(e2);
+            }
             throw e2;
         }
     },
