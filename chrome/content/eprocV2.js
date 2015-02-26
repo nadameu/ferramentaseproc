@@ -1966,10 +1966,9 @@ var Eproc = {
 				this.addEventListener('click', Gedpro.getNewLogin, false);
 			};
 			div.appendChild(linkCargaDocs);
-			var tabelas = $$('.infraTable'), tabela = tabelas[tabelas.length - 1], tabelaParent = tabela.parentNode;
-			tabelaParent.insertBefore(div, tabela);
-			tabelaParent.insertBefore(document.createElement('br'), tabela);
-			tabelaParent.insertBefore(document.createElement('br'), tabela);
+			var fldMinutas = $('#fldMinutas');
+			fldMinutas.parentNode.insertBefore(document.createElement('br'), fldMinutas.nextSibling);
+			fldMinutas.parentNode.insertBefore(div, fldMinutas.nextSibling.nextSibling);
 		});
 		var iconTrueColor = {};
 		iconTrueColor['DOC' ] = 'imagens/tree_icons/page_word.gif';
