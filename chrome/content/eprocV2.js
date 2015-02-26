@@ -2147,6 +2147,7 @@ var Eproc = {
 			{
 				window.addEventListener(eventName, onWindowScroll, false);
 			});
+			$('#lnkInfraMenuSistema').addEventListener('click', onWindowScroll, false);
 		}
 
 	},
