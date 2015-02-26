@@ -68,16 +68,18 @@ EprocXmlhttpRequester.prototype.chromeStartRequest=function(safeUrl, details) {
 // window's security context.
 EprocXmlhttpRequester.prototype.setupRequestEvent =
 function(unsafeContentWin, req, event, details) {
+    details = Components.utils.waiveXrays(details);
     if (details[event]) {
         req[event] = function() {
             var responseState = {
                 __exposedProps__: {
-                  responseText: 'r',
-                  readyState: 'r',
-                  responseHeaders: 'r',
-                  status: 'r',
-                  statusText: 'r'
-                },
+                  finalUrl: "r",
+                  readyState: "r",
+                  responseHeaders: "r",
+                  responseText: "r",
+                  status: "r",
+                  statusText: "r"
+                  },
                 // can't support responseXML because security won't
                 // let the browser call properties on it
                 responseText:req.responseText,
