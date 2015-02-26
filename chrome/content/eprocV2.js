@@ -17,8 +17,8 @@ var Util = {
 	extend: function(obj, props)
 	{
 		var args = Array.prototype.slice.call(arguments);
-		var obj = args.shift();
-		while (props = args.shift()) {
+		obj = args.shift();
+		while ((props = args.shift()) != null) {
 			var n;
 			for (n in props) {
 				obj[n] = props[n];
@@ -355,7 +355,7 @@ var Gedpro = (function()
 			tr.className = trClassName;
 			return tr;
 		};
-		var maiorPagina = pagina = 1;
+		var pagina = 1, maiorPagina = pagina;
 		return {
 			getPagina: function(estaPagina)
 			{
@@ -1251,7 +1251,7 @@ var Eproc = {
 			} catch (e) {
 			}
 			linkGedpro.removeAttribute('onclick');
-			onclickFunction = new Function('e', onclick);
+			var onclickFunction = new Function('e', onclick);
 			linkGedpro.addEventListener('click', function(e)
 			{
 				e.preventDefault();
@@ -1294,7 +1294,7 @@ var Eproc = {
 		}
 		window.addEventListener('beforeunload', function(e)
 		{
-			delete Eproc;
+			delete this.Eproc;
 		}, false);
 		function Icone()
 		{
@@ -1345,7 +1345,7 @@ var Eproc = {
 				var opcoes = document.createElement('div');
 				opcoes.className = 'extraAcoesOpcoes noprint';
 				legend.appendChild(opcoes);
-				function createCheckBox(preferencia, classe, id, texto)
+				var createCheckBox = function(preferencia, classe, id, texto)
 				{
 					var valor = GM_getValue(preferencia);
 					if (valor) {
@@ -1374,7 +1374,7 @@ var Eproc = {
 					label.appendChild(checkbox);
 					label.appendChild(document.createTextNode(' ' + texto));
 					opcoes.appendChild(label);
-				}
+				};
 				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
@@ -1562,6 +1562,7 @@ var Eproc = {
 		}
 		function getStyleElement(skin)
 		{
+			var styleElementName;
 			if (typeof skin == 'undefined') {
 				styleElementName = 'extraMain';
 			} else if (skin == 'print') {
@@ -1597,6 +1598,7 @@ var Eproc = {
 		var estilosPersonalizados = $('link[href^="css/estilos.php?skin="]');
 		if (estilosPersonalizados) {
 			var result = /\?skin=([^&]+)/.exec(estilosPersonalizados.href);
+			var skin;
 			switch (result[1]) {
 				case 'elegant':
 					skin = 'candy';
