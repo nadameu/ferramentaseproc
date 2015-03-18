@@ -1505,6 +1505,10 @@ var Eproc = {
 							icone = new InfraIcone('remover.gif');
 							break;
 
+						case 'processo_requisicao_cef':
+							icone = new ChromeIcone('cef.png');
+							break;
+
 						case 'procurador_parte_associar':
 						case 'procurador_parte_listar':
 							icone = new InfraIcone('mais.gif');
