@@ -2092,30 +2092,6 @@ var Eproc = {
 				return type ? type.toUpperCase() : 'PDF';
 			}
 		}
-		var tableRelacionado = $('#tableRelacionado');
-		var labelRelacionado = $('#lblRelac') || $('#lblProcRel');
-		if (tableRelacionado && labelRelacionado) {
-			if (tableRelacionado.rows.length > 2) {
-				var div = document.createElement('div');
-				labelRelacionado.parentNode.insertBefore(div, labelRelacionado);
-				div.appendChild(labelRelacionado);
-				div.appendChild(tableRelacionado);
-				$$('tr', tableRelacionado).forEach(function(row)
-				{
-					if (row.cells.length == 0) {
-						tableRelacionado.deleteRow(row.rowIndex);
-					}
-				});
-				tableRelacionado.appendChild(document.createElement('tfoot'));
-				tableRelacionado.tFoot.insertRow(0).insertCell(0).innerHTML = 'E OUTROS (' + (tableRelacionado.tBodies[0].rows.length - 1) + ')...';
-				tableRelacionado.tFoot.rows[0].className = 'noprint';
-				div.className = 'extraRelacionados';
-				var br = div.previousSibling.previousSibling;
-				if ('tagName' in br && br.tagName.toUpperCase() == 'BR') {
-					br.parentNode.removeChild(br);
-				}
-			}
-		}
 		var menu = Eproc.getMenu();
 		if (menu) {
 			var fechar = document.createElement('li');
