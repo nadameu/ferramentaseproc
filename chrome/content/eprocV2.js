@@ -1167,7 +1167,7 @@ var Eproc = {
 	},
 	getMenu: function()
 	{
-		var menu = $('#infraMenuRaizes');
+		var menu = $('#main-menu');
 		if (menu) return menu;
 		else return false;
 	},
@@ -2040,35 +2040,22 @@ var Eproc = {
 				th.setAttribute('width', '');
 			});
 			var eventosReferidos = {};
+			table.addEventListener('click', function(e) {
+				var docLink = e.target;
+				if (docLink.hasAttribute('data-doc')) {
+					var lastClicked = $('#lastClicked');
+					if (lastClicked) {
+						lastClicked.removeAttribute('id');
+					}
+					docLink.id = 'lastClicked';
+					var menuFechar = $('#extraFechar');
+					if (menuFechar) {
+						menuFechar.style.visibility = 'visible';
+					}
+				}
+			}, false);
 			$$('tr[class^="infraTr"], tr[bgcolor="#FFFACD"]', table).forEach(function(tr, r, trs)
 			{
-				var colunaDocumentos = tr.cells[tr.cells.length - 1];
-				$$('a[data-doc]', colunaDocumentos).forEach(function(docLink, l, docLinks)
-				{
-					docLink.classList.add('extraDocLink');
-					var size = docLink.getAttribute('data-bytes');
-					if (size) {
-						if (docLink.hasAttribute('onmouseover')) {
-							docLink.setAttribute('onmouseover', docLink.getAttribute('onmouseover').replace(/(<br>.*)(','',400\))/, '$1<br>' + formatSize(size) + '$2'));
-						} else if (docLink.hasAttribute('title')) {
-							docLink.setAttribute('title', docLink.getAttribute('title').replace(/(Sigilo:.*)$/, '$1 [' + formatSize(size) + ']'));
-						}
-					}
-					var id = Eproc.processo + r + docLink.innerHTML.replace(/<[^>]*>/g, '');
-					docLink.addEventListener('click', function(e)
-					{
-						for (var docLink = e.target; docLink.tagName.toUpperCase() != 'A'; docLink = docLink.parentNode);
-						var lastClicked = $('#lastClicked');
-						if (lastClicked) {
-							lastClicked.removeAttribute('id');
-						}
-						docLink.id = 'lastClicked';
-						var menuFechar = $('#extraFechar');
-						if (menuFechar) {
-							menuFechar.style.visibility = 'visible';
-						}
-					}, false);
-				})
 				var colunaDescricao = tr.cells[tr.cells.length - 3];
 				var texto = colunaDescricao.textContent;
 				var numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent);
@@ -2101,9 +2088,7 @@ var Eproc = {
 			var fechar = document.createElement('li');
 			fechar.id = 'extraFechar';
 			fechar.style.visibility = 'hidden';
-			var fecharLink = new VirtualLink('<div class="infraItemMenu"><div class="infraRotuloMenu">Fechar as janelas abertas</div></div>', Eproc.closeAllWindows);
-			$('.infraRotuloMenu', fecharLink).textContent = 'Fechar as janelas abertas';
-			fecharLink.className = 'infraMenuRaiz';
+			var fecharLink = new VirtualLink('Fechar as janelas abertas', Eproc.closeAllWindows);
 			fechar.appendChild(fecharLink);
 			menu.appendChild(fechar);
 			var setFecharProperties = function(pos, y, w)
