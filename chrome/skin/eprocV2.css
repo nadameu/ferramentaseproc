@@ -14,8 +14,8 @@ button.infraButton.extraBuscarPreventosButton:hover {
 .extraLembrete {
     float: left;
     font-size: 12px;
-    min-width: 20ex;
-    max-width: 40ex;
+    min-width: 25ex;
+    max-width: 50ex;
     margin-bottom: 0.5em;
     margin-right: 1ex;
     padding: 0.5em 1ex;
