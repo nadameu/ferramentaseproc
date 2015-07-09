@@ -1506,7 +1506,7 @@ var Eproc = {
 							break;
 
 						case 'processo_requisicao_cef':
-							icone = new ChromeIcone('cef.png');
+							icone = new ChromeIcone('predio.png');
 							break;
 
 						case 'procurador_parte_associar':
