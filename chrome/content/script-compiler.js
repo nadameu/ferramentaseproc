@@ -134,7 +134,7 @@ var EprocGmCompiler = {
 
         sandbox = new Cu.Sandbox(safeWin);
 
-        var storage = new EprocScriptStorage();
+        var storage = EprocPreferences;
         xmlhttpRequester = new EprocXmlhttpRequester(
             unsafeContentWin,
             window //appSvc.hiddenDOMWindow
@@ -152,8 +152,8 @@ var EprocGmCompiler = {
         {
             EprocGmCompiler.addStyle(sandbox.document, css);
         };
-        sandbox.GM_setValue = EprocGmCompiler.hitch(storage, "setValue");
-        sandbox.GM_getValue = EprocGmCompiler.hitch(storage, "getValue");
+        sandbox.GM_setValue = function(name, val) { return storage.setValue(name, val); };
+        sandbox.GM_getValue = function(name, defVal) { return storage.getValue(name, defVal); };
         sandbox.GM_openInTab = EprocGmCompiler.hitch(this, "openInTab", unsafeContentWin);
         sandbox.GM_xmlhttpRequest = EprocGmCompiler.hitch(xmlhttpRequester, "contentStartRequest");
         sandbox.IELauncher = IELauncher;
@@ -207,7 +207,6 @@ var EprocGmCompiler = {
                 FeP.versaoUsuarioCompativel = true;
             }
         };
-        //sandbox.__proto__ = sandbox.window;
 
         try {
             this.evalInSandbox(
@@ -366,11 +365,8 @@ function myDump(aMessage)
 }
 
 var versaoInstalada = '';
-if ('extensions' in Application) {
-    versaoInstalada = Application.extensions.get('eproc@nadameu.com.br').version;
-} else {
-    Application.getExtensions(function(extensions)
-    {
-        versaoInstalada = extensions.get('eproc@nadameu.com.br').version;
-    });
-}
+Cu['import']('resource://gre/modules/AddonManager.jsm');
+AddonManager.getAddonByID('eproc@nadameu.com.br', function(addon) {
+	versaoInstalada = addon.version;
+});
+

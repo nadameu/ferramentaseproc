@@ -646,7 +646,7 @@ var Gedpro = (function()
 					onload: function(obj)
 					{
 						Gedpro.popStatus();
-						var parser = new DOMParser();
+						var parser = new window.DOMParser();
 						var xml = parser.parseFromString(obj.responseText, "application/xml");
 						callback(xml);
 					},

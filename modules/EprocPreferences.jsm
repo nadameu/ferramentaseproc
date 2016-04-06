@@ -1,13 +1,11 @@
 var EXPORTED_SYMBOLS = [ 'EprocPreferences' ];
 var startPoint="eproc.";
 
-var pref=Components.classes["@mozilla.org/preferences-service;1"]
-    .getService(Components.interfaces.nsIPrefService)
-    .getBranch(startPoint);
+Components.utils.import('resource://gre/modules/Services.jsm');
 
-var defaults=Components.classes["@mozilla.org/preferences-service;1"]
-    .getService(Components.interfaces.nsIPrefService)
-    .getDefaultBranch(startPoint);
+var pref=Services.prefs.getBranch(startPoint);
+
+var defaults=Services.prefs.getDefaultBranch(startPoint);
 
 var observers={};
 
