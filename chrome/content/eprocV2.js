@@ -541,7 +541,7 @@ var Gedpro = (function()
 			Gedpro.getLinkElement(function(linkElement)
 			{
 				var urlGetter = linkElement.href;
-				var xhr = new XMLHttpRequest();
+				var xhr = new window.XMLHttpRequest();
 				xhr.open('HEAD', urlGetter);
 				xhr.setRequestHeader('X-Ferramentas-e-Proc', '1');
 				xhr.onreadystatechange = function(ev)
@@ -1764,7 +1764,7 @@ var Eproc = {
 					window.location.href = botao.href;
 				}
 			}
-			var xhr = new XMLHttpRequest();
+			var xhr = new window.XMLHttpRequest();
 			xhr.open('GET', botao.href);
 			xhr.onreadystatechange = function()
 			{

@@ -207,7 +207,7 @@ var EprocGmCompiler = {
                 FeP.versaoUsuarioCompativel = true;
             }
         };
-        sandbox.__proto__ = sandbox.window;
+        //sandbox.__proto__ = sandbox.window;
 
         try {
             this.evalInSandbox(
