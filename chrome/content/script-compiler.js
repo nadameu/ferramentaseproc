@@ -5,6 +5,8 @@ XPCOMUtils.defineLazyModuleGetter(EprocChrome, 'MD5', 'resource://eproc/MD5.jsm'
 XPCOMUtils.defineLazyModuleGetter(EprocChrome, 'Uri', 'resource://eproc/Uri.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'httpRequestObserver', 'resource://eproc/httpRequestObserver.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'EprocPreferences', 'resource://eproc/EprocPreferences.jsm');
+XPCOMUtils.defineLazyModuleGetter(this, 'GM_xmlhttpRequester', 'chrome://eproc/content/xmlhttprequester.js');
+XPCOMUtils.defineLazyModuleGetter(this, 'hitch', 'chrome://eproc/content/hitch.js');
 
 var showPreferences = function()
 {
@@ -135,10 +137,7 @@ var EprocGmCompiler = {
         sandbox = new Cu.Sandbox(safeWin);
 
         var storage = EprocPreferences;
-        xmlhttpRequester = new EprocXmlhttpRequester(
-            unsafeContentWin,
-            window //appSvc.hiddenDOMWindow
-        );
+        xmlhttpRequester = new GM_xmlhttpRequester(safeWin, url, sandbox);
 
         sandbox.window = safeWin;
         sandbox.document = sandbox.window.document;
@@ -148,14 +147,11 @@ var EprocGmCompiler = {
         sandbox.XPathResult = Ci.nsIDOMXPathResult;
 
         // add our own APIs
-        sandbox.GM_addStyle = function(css)
-        {
-            EprocGmCompiler.addStyle(sandbox.document, css);
-        };
-        sandbox.GM_setValue = function(name, val) { return storage.setValue(name, val); };
-        sandbox.GM_getValue = function(name, defVal) { return storage.getValue(name, defVal); };
-        sandbox.GM_openInTab = EprocGmCompiler.hitch(this, "openInTab", unsafeContentWin);
-        sandbox.GM_xmlhttpRequest = EprocGmCompiler.hitch(xmlhttpRequester, "contentStartRequest");
+        sandbox.GM_addStyle = hitch(this, 'addStyle', sandbox.document);
+        sandbox.GM_setValue = hitch(storage, 'setValue');
+        sandbox.GM_getValue = hitch(storage, 'getValue');
+        sandbox.GM_openInTab = hitch(this, 'openInTab', unsafeContentWin);
+        sandbox.GM_xmlhttpRequest = hitch(xmlhttpRequester, 'contentStartRequest');
         sandbox.IELauncher = IELauncher;
         //unsupported
         sandbox.GM_registerMenuCommand = function(){};
@@ -261,55 +257,6 @@ var EprocGmCompiler = {
         tabBrowser.loadOneTab(url, referrer, null, null, loadInBackground);
     },
 
-    apiLeakCheck: function(allowedCaller)
-    {
-        var stack = Components.stack;
-
-        var leaked = false;
-        do {
-            if (2 == stack.language) {
-                if ('chrome' != stack.filename.substr(0, 6) && allowedCaller != stack.filename) {
-                    leaked = true;
-                    break;
-                }
-            }
-
-            stack = stack.caller;
-        } while (stack);
-
-        return leaked;
-    },
-
-    hitch: function(obj, meth)
-    {
-        if (!obj[meth]) {
-            throw "method '" + meth + "' does not exist on object '" + obj + "'";
-        }
-
-        var hitchCaller = Components.stack.caller.filename;
-        var staticArgs = Array.prototype.splice.call(arguments, 2, arguments.length);
-
-        return function()
-        {
-            if (EprocGmCompiler.apiLeakCheck(hitchCaller)) {
-                return;
-            }
-
-            // make a copy of staticArgs (don't modify it because it gets reused for
-            // every invocation).
-            var args = staticArgs.concat();
-
-            // add all the new arguments
-            for (var i = 0; i < arguments.length; i++) {
-                args.push(arguments[i]);
-            }
-
-            // invoke the original function with the correct this obj and the combined
-            // list of static and dynamic arguments.
-            return obj[meth].apply(obj, args);
-        };
-    },
-
     addStyle: function(doc, css)
     {
         var head, style;
@@ -339,20 +286,6 @@ var EprocGmCompiler = {
     },
 
 }; //object EprocGmCompiler
-
-
-function EprocScriptStorage()
-{
-    var prefMan = EprocPreferences;
-    this.setValue = function(name, val)
-    {
-        prefMan.setValue(name, val);
-    };
-    this.getValue = function(name, defVal)
-    {
-        return prefMan.getValue(name, defVal);
-    };
-}
 
 
 window.addEventListener('load', EprocGmCompiler.onLoad, false);

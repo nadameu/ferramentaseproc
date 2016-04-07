@@ -1,6 +1,66 @@
-function EprocXmlhttpRequester(unsafeContentWin, chromeWindow) {
-    this.unsafeContentWin = unsafeContentWin;
-    this.chromeWindow = chromeWindow;
+var EXPORTED_SYMBOLS = ['GM_xmlhttpRequester'];
+
+Components.utils.importGlobalProperties(["Blob"]);
+Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+Components.utils.importGlobalProperties(['XMLHttpRequest']);
+Components.utils.import('chrome://ferramentasbacenjud/content/hitch.js');
+
+var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+    .getService(Components.interfaces.nsIIOService);
+
+function uriFromUrl(url, base) {
+  var baseUri = null;
+  if (typeof base === "string") {
+    baseUri = uriFromUrl(base);
+  } else if (base) {
+    baseUri = base;
+  }
+
+  try {
+    return ioService.newURI(url, null, baseUri);
+  } catch (e) {
+    return null;
+  }
+}
+
+var Cu = Components.utils;
+
+/*
+Accessing windows that are closed can be dangerous after
+http://bugzil.la/695480 .  This routine takes care of being careful to not
+trigger any of those broken edge cases.
+*/
+function windowIsClosed(aWin) {
+  try {
+    // If isDeadWrapper (Firefox 15+ only) tells us the window is dead.
+    if (Cu.isDeadWrapper && Cu.isDeadWrapper(aWin)) {
+      return true;
+    }
+
+    // If we can access the .closed property and it is true, or there is any
+    // problem accessing that property.
+    try {
+      if (aWin.closed) return true;
+    } catch (e) {
+      return true;
+    }
+  } catch (e) {
+    Cu.reportError(e);
+    // Failsafe.  In case of any failure, destroy the command to avoid leaks.
+    return true;
+  }
+  return false;
+}
+
+function GM_xmlhttpRequester(wrappedContentWin, originUrl, sandbox) {
+  this.wrappedContentWin = wrappedContentWin;
+  this.originUrl = originUrl;
+  this.sandbox = sandbox;
+  // Firefox < 29 (i.e. PaleMoon) does not support getObjectPrincipal in a
+  // scriptable context.  Greasemonkey users on this platform otherwise would
+  // use an older version without this check, so skipping is no worse.
+  this.sandboxPrincipal = 'function' == typeof Components.utils.getObjectPrincipal
+      ? Components.utils.getObjectPrincipal(sandbox) : null;
 }
 
 // this function gets called by user scripts in content security scope to
@@ -11,90 +71,259 @@ function EprocXmlhttpRequester(unsafeContentWin, chromeWindow) {
 // headers should be in the form {name:value,name:value,etc}
 // can't support mimetype because i think it's only used for forcing
 // text/xml and we can't support that
-EprocXmlhttpRequester.prototype.contentStartRequest = function(details) {
-    // important to store this locally so that content cannot trick us up with
-    // a fancy getter that checks the number of times it has been accessed,
-    // returning a dangerous URL the time that we actually use it.
-    var url = details.url;
+GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
+  try {
+    // Validate and parse the (possibly relative) given URL.
+    var uri = uriFromUrl(details.url, this.originUrl);
+    var url = uri.spec;
+  } catch (e) {
+    // A malformed URL won't be parsed properly.
+    throw new Error('URL inválida: %1'.replace('%1', details.url));
+  }
 
-    // make sure that we have an actual string so that we can't be fooled with
-    // tricky toString() implementations.
-    if (typeof url != "string") {
-        throw new Error("Invalid url: url must be of type string");
+  // This is important - without it, GM_xmlhttpRequest can be used to get
+  // access to things like files and chrome. Careful.
+  switch (uri.scheme) {
+    case "http":
+    case "https":
+    case "ftp":
+        var req = new XMLHttpRequest(
+            (details.mozAnon || details.anonymous) ? {'mozAnon': true} : {});
+        hitch(this, "chromeStartRequest", url, details, req)();
+      break;
+    default:
+      throw new Error(
+          'Scheme não permitido: %1'.replace('%1', details.url)
+          );
+  }
+
+  var rv = {
+    abort: function () { return req.abort(); },
+    finalUrl: null,
+    readyState: null,
+    responseHeaders: null,
+    responseText: null,
+    status: null,
+    statusText: null
+  };
+
+  if (!!details.synchronous) {
+    rv.finalUrl = req.finalUrl;
+    rv.readyState = req.readyState;
+    rv.responseHeaders = req.getAllResponseHeaders();
+    try {
+      rv.responseText = req.responseText;
+    } catch (e) {
+      // Some response types don't have .responseText (but do have e.g. blob
+      // .response).  Ignore.
     }
+    rv.status = req.status;
+    rv.statusText = req.statusText;
+  }
 
-    var ioService=Components.classes["@mozilla.org/network/io-service;1"]
-        .getService(Components.interfaces.nsIIOService);
-    var scheme = ioService.extractScheme(url);
+  rv = Components.utils.cloneInto({
+    abort: rv.abort.bind(rv),
+    finalUrl: rv.finalUrl,
+    readyState: rv.readyState,
+    responseHeaders: rv.responseHeaders,
+    responseText: rv.responseText,
+    status: rv.status,
+    statusText: rv.statusText
+  }, this.sandbox, {cloneFunctions: true});
 
-    // This is important - without it, GM_xmlhttpRequest can be used to get
-    // access to things like files and chrome. Careful.
-    switch (scheme) {
-        case "http":
-        case "https":
-        case "ftp":
-            this.chromeWindow.setTimeout(
-                EprocGmCompiler.hitch(this, "chromeStartRequest", url, details), 0);
-            break;
-        default:
-            throw new Error("Invalid url: " + url);
-    }
-}
+  return rv;
+};
 
 // this function is intended to be called in chrome's security context, so
 // that it can access other domains without security warning
-EprocXmlhttpRequester.prototype.chromeStartRequest=function(safeUrl, details) {
-    var req = new this.chromeWindow.XMLHttpRequest();
+GM_xmlhttpRequester.prototype.chromeStartRequest =
+function(safeUrl, details, req) {
+  var setupRequestEvent = hitch(
+      this, 'setupRequestEvent', this.wrappedContentWin, this.sandbox);
 
-    this.setupRequestEvent(this.unsafeContentWin, req, "onload", details);
-    this.setupRequestEvent(this.unsafeContentWin, req, "onerror", details);
-    this.setupRequestEvent(this.unsafeContentWin, req, "onreadystatechange", details);
+  setupRequestEvent(req, "abort", details);
+  setupRequestEvent(req, "error", details);
+  setupRequestEvent(req, "load", details);
+  setupRequestEvent(req, "loadend", details);
+  setupRequestEvent(req, "loadstart", details);
+  setupRequestEvent(req, "progress", details);
+  setupRequestEvent(req, "readystatechange", details);
+  setupRequestEvent(req, "timeout", details);
+  if (details.upload) {
+    setupRequestEvent(req.upload, "abort", details.upload);
+    setupRequestEvent(req.upload, "error", details.upload);
+    setupRequestEvent(req.upload, "load", details.upload);
+    setupRequestEvent(req.upload, "loadend", details.upload);
+    setupRequestEvent(req.upload, "progress", details.upload);
+    setupRequestEvent(req.upload, "timeout", details.upload);
+  }
 
-    req.open(details.method, safeUrl);
+  req.mozBackgroundRequest = !!details.mozBackgroundRequest;
 
-    if (details.headers) {
-        for (var prop in details.headers) {
-            req.setRequestHeader(prop, details.headers[prop]);
-        }
+  req.open(details.method, safeUrl,
+      !details.synchronous, details.user || "", details.password || "");
+
+  var channel;
+
+  var isPrivate = true;
+  if (PrivateBrowsingUtils.isContentWindowPrivate) {
+    // Firefox >= 35
+    isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(this.wrappedContentWin);
+  } else {
+    // Firefox <= 34; i.e. PaleMoon
+    isPrivate = PrivateBrowsingUtils.isWindowPrivate(this.wrappedContentWin);
+  }
+  if (isPrivate) {
+    channel = req.channel
+        .QueryInterface(Components.interfaces.nsIPrivateBrowsingChannel);
+    channel.setPrivate(true);
+  }
+
+  channel = req.channel
+      .QueryInterface(Components.interfaces.nsIHttpChannelInternal);
+  channel.forceAllowThirdPartyCookie = true;
+
+  if (details.overrideMimeType) {
+    req.overrideMimeType(details.overrideMimeType);
+  }
+  if (details.responseType) {
+    req.responseType = details.responseType;
+  }
+
+  if (details.timeout) {
+    req.timeout = details.timeout;
+  }
+
+  if ('redirectionLimit' in details) {
+    try {
+      var httpChannel = req.channel.QueryInterface(
+          Components.interfaces.nsIHttpChannel);
+      httpChannel.redirectionLimit = details.redirectionLimit;
+    } catch (e) {
+      // Ignore.
     }
-    if (details.mimeType) {
-        req.overrideMimeType(details.mimeType);
+  }
+
+  if (details.headers) {
+    var headers = details.headers;
+
+    for (var prop in headers) {
+      if (Object.prototype.hasOwnProperty.call(headers, prop)) {
+        req.setRequestHeader(prop, headers[prop]);
+      }
     }
-    req.send(details.data);
-}
+  }
+
+  var body = details.data ? details.data : null;
+  if (details.binary && (body !== null)) {
+    var bodyLength = body.length;
+    var bodyData = new Uint8Array(bodyLength);
+    for (var i = 0; i < bodyLength; i++) {
+      bodyData[i] = body.charCodeAt(i) & 0xff;
+    }
+    req.send(new Blob([bodyData]));
+  } else {
+    req.send(body);
+  }
+};
 
 // arranges for the specified 'event' on xmlhttprequest 'req' to call the
 // method by the same name which is a property of 'details' in the content
 // window's security context.
-EprocXmlhttpRequester.prototype.setupRequestEvent =
-function(unsafeContentWin, req, event, details) {
-    details = Components.utils.waiveXrays(details);
-    if (details[event]) {
-        req[event] = function() {
-            var responseState = {
-                __exposedProps__: {
-                  finalUrl: "r",
-                  readyState: "r",
-                  responseHeaders: "r",
-                  responseText: "r",
-                  status: "r",
-                  statusText: "r"
-                  },
-                // can't support responseXML because security won't
-                // let the browser call properties on it
-                responseText:req.responseText,
-                readyState:req.readyState,
-                responseHeaders:(req.readyState==4?req.getAllResponseHeaders():''),
-                status:(req.readyState==4?req.status:0),
-                statusText:(req.readyState==4?req.statusText:'')
-            }
+GM_xmlhttpRequester.prototype.setupRequestEvent =
+function(wrappedContentWin, sandbox, req, event, details) {
+  // Waive Xrays so that we can read callback function properties ...
+  details = Components.utils.waiveXrays(details);
+  var eventCallback = details["on" + event];
+  if (!eventCallback) return;
 
-            // Pop back onto browser thread and call event handler.
-            // Have to use nested function here instead of GM_hitch because
-            // otherwise details[event].apply can point to window.setTimeout, which
-            // can be abused to get increased priveledges.
-            new XPCNativeWrapper(unsafeContentWin, "setTimeout()")
-                .setTimeout(function(){details[event](responseState);}, 0);
-        }
+  // ... but ensure that the callback came from a script, not content, by
+  // checking that its principal equals that of the sandbox.
+  if ('function' == typeof Components.utils.getObjectPrincipal) {
+    // Firefox < 29; i.e. PaleMoon.
+    var callbackPrincipal = Components.utils.getObjectPrincipal(eventCallback);
+    if (!this.sandboxPrincipal.equals(callbackPrincipal)) return;
+  }
+
+  req.addEventListener(event, function(evt) {
+    var responseState = {
+      context: details.context || null,
+      finalUrl: null,
+      lengthComputable: null,
+      loaded: null,
+      readyState: req.readyState,
+      response: req.response,
+      responseHeaders: null,
+      responseText: null,
+      responseXML: null,
+      status: null,
+      statusText: null,
+      total: null
+    };
+
+    try {
+      responseState.responseText = req.responseText;
+    } catch (e) {
+      // Some response types don't have .responseText (but do have e.g. blob
+      // .response).  Ignore.
     }
-}
+
+    var responseXML = null;
+    try {
+      responseXML = req.responseXML;
+    } catch (e) {
+      // Ignore failure.  At least in responseType blob case, this access fails.
+    }
+    if (responseXML) {
+      // Clone the XML object into a content-window-scoped document.
+      var xmlDoc = new wrappedContentWin.Document();
+      var clone = xmlDoc.importNode(responseXML.documentElement, true);
+      xmlDoc.appendChild(clone);
+      responseState.responseXML = xmlDoc;
+    }
+
+    switch (event) {
+      case "progress":
+        responseState.lengthComputable = evt.lengthComputable;
+        responseState.loaded = evt.loaded;
+        responseState.total = evt.total;
+        break;
+      case "error":
+        break;
+      default:
+        if (4 != req.readyState) break;
+        responseState.responseHeaders = req.getAllResponseHeaders();
+        responseState.status = req.status;
+        responseState.statusText = req.statusText;
+        responseState.finalUrl = req.channel.URI.spec;
+        break;
+    }
+
+    responseState = Components.utils.cloneInto({
+      context: responseState.context,
+      finalUrl: responseState.finalUrl,
+      lengthComputable: responseState.lengthComputable,
+      loaded: responseState.loaded,
+      readyState: responseState.readyState,
+      response: responseState.response,
+      responseHeaders: responseState.responseHeaders,
+      responseText: responseState.responseText,
+      responseXML: responseState.responseXML,
+      status: responseState.status,
+      statusText: responseState.statusText,
+      total: responseState.total
+    }, sandbox, {cloneFunctions: true, wrapReflectors: true});
+
+    if (windowIsClosed(wrappedContentWin)) {
+      return;
+    }
+
+    // Pop back onto browser thread and call event handler.
+    // Have to use nested function here instead of GM_util.hitch because
+    // otherwise details[event].apply can point to window.setTimeout, which
+    // can be abused to get increased privileges.
+    new XPCNativeWrapper(wrappedContentWin, "setTimeout()")
+      .setTimeout(function(){ eventCallback.call(details, responseState); }, 0);
+  }, false);
+};
+
