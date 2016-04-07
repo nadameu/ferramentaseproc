@@ -3,7 +3,7 @@ var EXPORTED_SYMBOLS = ['GM_xmlhttpRequester'];
 Components.utils.importGlobalProperties(["Blob"]);
 Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Components.utils.importGlobalProperties(['XMLHttpRequest']);
-Components.utils.import('chrome://ferramentasbacenjud/content/hitch.js');
+Components.utils.import('chrome://eproc/content/hitch.js');
 
 var ioService = Components.classes["@mozilla.org/network/io-service;1"]
     .getService(Components.interfaces.nsIIOService);
