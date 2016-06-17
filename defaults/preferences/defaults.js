@@ -12,5 +12,3 @@ pref('eproc.v2.ie.enable', true);
 pref('eproc.v2.ie.mensagemmostrada', false);
 pref('eproc.v2.ielocation', 'CAMINHO_PARA_IEXPLORE.EXE');
 pref('eproc.v2.mostraricones', true);
-pref('eproc.v2.destacaracoes', false);
-pref('eproc.v2.mostraranotacoes', false);

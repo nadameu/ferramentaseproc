@@ -1378,12 +1378,6 @@ var Eproc = {
 				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
-				var chkDestacarAcoes = new CheckBox('v2.destacaracoes', 'Destacar ações mais comuns');
-				chkDestacarAcoes.vincularElementoClasse(fieldset, 'extraAcoesDestacar');
-				opcoes.appendChild(chkDestacarAcoes.getLabel());
-				var divAcoesDestacadas = document.createElement('div');
-				divAcoesDestacadas.className = 'extraAcoesDestacadas noprint';
-				fieldset.appendChild(divAcoesDestacadas);
 			}
 			acoes.forEach(function(acao)
 			{
@@ -1404,13 +1398,12 @@ var Eproc = {
 					acao.addEventListener('click', function(e) { e.preventDefault(); }, false);
 				}
 				var acaoControlador = /\?acao=([^&]+)/.exec(acao.href);
-				var destacar = false, dispararOriginal = false;
+				var dispararOriginal = false;
 				if (acaoControlador && acaoControlador.length == 2) {
 					var icone = null;
 					switch (acaoControlador[1]) {
 						case 'acessar_processo_gedpro':
 							icone = new ChromeIcone('ie.png');
-							destacar = true;
 							dispararOriginal = true;
 							break;
 
@@ -1465,7 +1458,6 @@ var Eproc = {
 
 						case 'processo_citacao':
 							icone = new ChromeIcone('newspaper.png');
-							destacar = true;
 							break;
 
 						case 'processo_consultar':
@@ -1483,22 +1475,18 @@ var Eproc = {
 						case 'processo_intimacao':
 						case 'processo_intimacao_bloco':
 							icone = new InfraIcone('encaminhar.gif');
-							destacar = true;
 							break;
 
 						case 'processo_intimacao_aps_bloco':
 							icone = new InfraIcone('transportar.gif');
-							destacar = true;
 							break;
 
 						case 'processo_lembrete_destino_cadastrar':
 							icone = new InfraIcone('tooltip.gif');
-							destacar = true;
 							break;
 
 						case 'processo_movimento_consultar':
 							icone = new InfraIcone('receber.gif');
-							destacar = true;
 							break;
 
 						case 'processo_movimento_desativar_consulta':
@@ -1531,22 +1519,6 @@ var Eproc = {
 					span.className = 'extraAcoesSeparador';
 					span.textContent = acao.nextSibling.textContent;
 					acao.parentNode.replaceChild(span, acao.nextSibling);
-				}
-				if (destacar) {
-					var copia = acao.cloneNode(true);
-					acao.classList.add('extraLinkAcaoDestacadaOriginal');
-					divAcoesDestacadas.appendChild(copia);
-					if (dispararOriginal) {
-						copia.addEventListener('click', (function(original)
-						{
-							return function(evento)
-							{
-								evento.preventDefault();
-								evento.stopPropagation();
-								Eproc.clicar(original);
-							};
-						})(acao), false);
-					}
 				}
 			});
 		}
