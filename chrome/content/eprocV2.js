@@ -925,6 +925,10 @@ var Eproc = {
 	{
 		Eproc.corrigirCss('#fldLogin { position: static; margin: 6% auto; }');
 	},
+	entrar_cert: function()
+	{
+		this.entrar();
+	},
 	getHiddenProps: function(texto)
 	{
 		var reComentario = /<!--\s+(.*?)\s+-->/g, codigoOculto;
