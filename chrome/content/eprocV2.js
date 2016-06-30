@@ -938,8 +938,8 @@ var Eproc = {
 			this.processo = this.parametros.num_processo;
 			delete this.parametros.num_processo;
 		}
-		var barraSistema = $('.infraBarraSistema'), lembretes = $$('.infraTable[summary="Lembretes"]');
-		if (barraSistema || lembretes.length) {
+		var barraSistema = $('.infraBarraSistema');
+		if (barraSistema) {
 			Eproc.mudaEstilos();
 		}
 		var pesquisaRapida = $('#txtNumProcessoPesquisaRapida');
@@ -1505,62 +1505,6 @@ var Eproc = {
 	processo_evento_paginacao_listar: function()
 	{
 		this.processo_selecionar();
-	},
-	processo_lembrete_destino_alterar: function()
-	{
-		this.processo_lembrete_destino_cadastrar();
-	},
-	processo_lembrete_destino_cadastrar: function()
-	{
-		var descricao = $('#txaDescricao');
-		if (! descricao) return;
-		descricao.name = '';
-		var props = Eproc.getHiddenProps(descricao.textContent);
-		descricao.value = props.clean;
-		var newDescricao = document.createElement('input');
-		newDescricao.id = 'newTxaDescricao';
-		newDescricao.name = 'txaDescricao';
-		newDescricao.type = 'hidden';
-		newDescricao.value = props;
-		descricao.parentNode.insertBefore(newDescricao, descricao.nextSibling);
-		var onDescricaoChange = function(e)
-		{
-			props.clean = descricao.value;
-			newDescricao.value = props;
-		};
-		descricao.addEventListener('change', onDescricaoChange, false);
-		var fieldset = $('#fldNovoLembrete');
-		fieldset.appendChild(document.createElement('br'));
-		var lblCor = document.createElement('label');
-		lblCor.htmlFor = 'extraCorLembrete';
-		lblCor.textContent = 'Cor ';
-		lblCor.className = 'infraLabelOpcional';
-		fieldset.appendChild(lblCor);
-		var selCor = document.createElement('select');
-		selCor.id = 'extraCorLembrete';
-		['', 'vermelho', 'amarelo', 'verde'].forEach(function(cor)
-		{
-			var option = document.createElement('option');
-			option.textContent = cor;
-			if (('cor' in props.properties) && (props.properties.cor == cor)) {
-				option.selected = true;
-			}
-			selCor.appendChild(option);
-		});
-		selCor.addEventListener('change', function(e)
-		{
-			if (selCor.value == '') {
-				delete props.properties.cor;
-			} else {
-				props.properties.cor = selCor.value;
-			}
-			onDescricaoChange();
-		}, false);
-		fieldset.appendChild(selCor);
-	},
-	processo_lembrete_destino_cadastrar_bloco_subfrm: function()
-	{
-		this.processo_lembrete_destino_cadastrar();
 	},
 	processo_seleciona_publica: function()
 	{
