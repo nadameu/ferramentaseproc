@@ -738,80 +738,6 @@ var Eproc = {
 			}
 		}
 	},
-	colorirLembretes: function()
-	{
-		var tables = $$('.infraTable[summary="Lembretes"]');
-		if (tables.length == 0) return;
-		var unidades = $$('label[id="lblInfraUnidades"]');
-		if (unidades.length == 0) {
-			unidades = $$('label[id="lblInfraUnidades"]', window.parent.document);
-		}
-		if (unidades.length == 1) {
-			unidades = unidades[0];
-		} else if (unidades.length > 1) {
-			unidades = unidades[1];
-		}
-		if (('tagName' in unidades) && unidades.tagName == 'LABEL') {
-			var usuarioAtual = unidades.textContent;
-		} else {
-			var usuarioAtual = '';
-		}
-		tables.forEach(function(table)
-		{
-			var div = document.createElement('div');
-			div.className = 'extraLembretes noprint';
-			$$('tr.infraTrClara, tr.infraTrEscura', table).forEach(function(tr, r)
-			{
-				var orgaoDestino = tr.cells[2].textContent;
-				var destino = tr.cells[3].textContent || orgaoDestino;
-				var inicio = tr.cells[6].textContent == ' - ' ? null : tr.cells[6].textContent;
-				var fim = tr.cells[7].textContent == ' - ' ? null : tr.cells[7].textContent;
-				var floater = document.createElement('div');
-				floater.className = 'extraLembrete';
-				if (/TODOS OS ÓRGÃOS/.test(destino)) {
-					destino = 'TODOS';
-					floater.classList.add('extraLembreteTodos');
-				} else if (/TODOS DO ÓRGÃO/.test(destino)) {
-					destino = orgaoDestino;
-				} else if (new RegExp(destino).test(usuarioAtual)) {
-					destino = 'VOCÊ';
-					floater.classList.add('extraLembreteVoce');
-				}
-				floater.innerHTML =
-					'<div class="extraLembretePara">Para: '
-						+ destino
-						+ (tr.cells[8].textContent == 'Não' ? ' (<abbr '
-							+ 'onmouseover="return infraTooltipMostrar('
-							+ '\'Este lembrete não será exibido na movimentação processual\','
-							+ '\'Movimentação processual\',' + '400);" '
-							+ 'onmouseout="return infraTooltipOcultar();">N</abbr>)' : '')
-						+ (inicio ? ' (<abbr ' + 'onmouseover="return infraTooltipMostrar('
-							+ '\'Visível de ' + inicio + '<br/>até ' + fim + '\','
-							+ '\'Prazo de exibição\',' + '400);" '
-							+ 'onmouseout="return infraTooltipOcultar();">P</abbr>)' : '')
-						+ '</div>' + tr.cells[4].textContent.replace(/\n/g, '<br/>')
-						+ '<div class="extraLembreteData">' + tr.cells[5].textContent
-						+ '<br/>' + tr.cells[1].textContent + '</div>';
-				var props = Eproc.getHiddenProps(tr.cells[4].innerHTML);
-				for (n in props.properties) {
-					floater.setAttribute('data-' + n, props.properties[n]);
-				}
-				var celulaBotoes = tr.cells[tr.cells.length - 1];
-				if (celulaBotoes.childNodes.length > 2) {
-					floater.childNodes[0].appendChild(celulaBotoes.childNodes[2]);
-				}
-				if (celulaBotoes.childNodes.length > 0) {
-					floater.childNodes[0].appendChild(celulaBotoes.childNodes[0]);
-				}
-				div.appendChild(floater);
-			});
-			var separator = document.createElement('div');
-			separator.className = 'extraSeparador';
-			div.appendChild(separator);
-			table.parentNode.insertBefore(div, table);
-			table.classList.add('noscreen');
-		});
-	},
 	modificarTabelaProcessos: function()
 	{
 		(function() {
@@ -1056,12 +982,6 @@ var Eproc = {
 			} else {
 				barra.appendChild(div);
 			}
-		}
-		switch (this.acao) {
-			case 'processo_lembrete_destino_listar_subfrm':
-			case 'processo_selecionar':
-				this.colorirLembretes();
-				break;
 		}
 		this.modificarTabelaProcessos();
 		Gedpro.getLinkElement(function(linkGedpro)
