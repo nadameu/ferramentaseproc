@@ -1079,44 +1079,9 @@ var Eproc = {
 			var fieldset = $('#fldAcoes');
 			var legend = $('legend', fieldset);
 			if (legend) {
-				var span = document.createElement('span');
-				span.className = 'extraAcoesLegend';
-				span.textContent = legend.textContent;
-				legend.textContent = '';
-				legend.appendChild(span);
 				var opcoes = document.createElement('div');
 				opcoes.className = 'extraAcoesOpcoes noprint';
 				legend.appendChild(opcoes);
-				var createCheckBox = function(preferencia, classe, id, texto)
-				{
-					var valor = GM_getValue(preferencia);
-					if (valor) {
-						fieldset.classList.add(classe);
-					}
-					var label = document.createElement('label');
-					label.htmlFor = id;
-					var checkbox = document.createElement('input');
-					checkbox.id = id;
-					checkbox.type = 'checkbox';
-					checkbox.checked = valor;
-					checkbox.addEventListener('change', (function(preferencia, classe)
-					{
-						return function(e)
-						{
-							var valor = e.target.checked;
-							GM_setValue(preferencia, valor);
-							var fieldset = $('#fldAcoes');
-							if (valor) {
-								fieldset.classList.add(classe);
-							} else {
-								fieldset.classList.remove(classe);
-							}
-						};
-					})(preferencia, classe), false);
-					label.appendChild(checkbox);
-					label.appendChild(document.createTextNode(' ' + texto));
-					opcoes.appendChild(label);
-				};
 				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
@@ -1266,7 +1231,7 @@ var Eproc = {
 		}
 		function getAcoes()
 		{
-			var acoes = $$('#fldAcoes a');
+			var acoes = $$('#fldAcoes > center a');
 			if (acoes.length == 0) return false;
 			return acoes;
 		}
