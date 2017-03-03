@@ -740,15 +740,6 @@ var Eproc = {
 	},
 	modificarTabelaProcessos: function()
 	{
-		(function() {
-			$$('table').forEach(function(table) {
-				var links = $$('a[href^="controlador.php?acao=processo_selecionar&"]', table);
-				var inputs = $$('input[type="checkbox"]', table);
-				if (links.length > 1 && links.length == inputs.length) {
-					Eproc.permitirAbrirEmAbas(table);
-				}
-			});
-		})();
 		var findTh = function(campo, texto)
 		{
 			var th = null, setas = $$('a[onclick="infraAcaoOrdenar(\'' + campo + '\',\'ASC\');"]');
@@ -1299,34 +1290,6 @@ var Eproc = {
 			}
 			addStyleSheet(skin + '-extra');
 		}
-	},
-	permitirAbrirEmAbas: function(table)
-	{
-		if ($$('a[href^="controlador.php?acao=processo_selecionar&"]', table).length <= 1) {
-			return;
-		}
-		var link = new VirtualLink('Abrir os processos selecionados em abas/janelas', function(e)
-		{
-			var marcadas = 0, links = [];
-			$$('tr.infraTrMarcada', table).forEach(function(linha)
-			{
-				var linkProcesso = $('a[href^="controlador.php?acao=processo_selecionar"]', linha).href;
-				links.push(linkProcesso);
-				marcadas++;
-			});
-			if (marcadas > 0) {
-				if (marcadas < 10 || (GM_yesNo('Abrindo ' + marcadas + ' abas/janelas', 'Tem certeza de que deseja abrir ' + marcadas + ' novas abas/janelas?\nSeu sistema pode deixar de responder.') == 'YES')) {
-					links.forEach(function(linkProcesso)
-					{
-						window.open(linkProcesso);
-					});
-				}
-			}
-		});
-		var div = document.createElement('div');
-		div.style.margin = '.5em 0';
-		div.appendChild(link);
-		table.parentNode.insertBefore(div, table);
 	},
 	usuario_tipo_monitoramento_localizador_listar: function(){
 		var linhas = $$('#divInfraAreaTabela tr[class^="infraTr"]');
