@@ -1,27 +1,21 @@
-function $(selector, baseElement) {
-	if (typeof baseElement == 'undefined') {
-		baseElement = document;
-	}
+function $(selector, baseElement = document) {
 	return baseElement.querySelector(selector);
 }
 
-function $$(selector, baseElement) {
-	if (typeof baseElement == 'undefined') {
-		baseElement = document;
-	}
+function $$(selector, baseElement = document) {
 	var elements = baseElement.querySelectorAll(selector);
 	return Array.prototype.slice.call(elements);
 }
-var Util = {
-	extend: function(obj, props) {
-		var args = Array.prototype.slice.call(arguments);
-		obj = args.shift();
-		while ((props = args.shift()) != null) {
-			var n;
-			for (n in props) {
-				obj[n] = props[n];
+
+const Util = {
+	extend: function(obj, ...propsGroup) {
+		propsGroup.forEach(props => {
+			for (let n in props) {
+				if (props.hasOwnProperty(n)) {
+					obj[n] = props[n];
+				}
 			}
-		}
+		});
 		return obj;
 	}
 };
@@ -81,7 +75,10 @@ CheckBox.prototype = {
 		});
 
 		function alterarClasse(valor) {
-			valor ? elemento.classList.add(classe) : elemento.classList.remove(classe);
+			if (valor)
+				elemento.classList.add(classe);
+			else
+				elemento.classList.remove(classe);
 		}
 		alterarClasse(this.preferencia());
 	},
@@ -197,7 +194,7 @@ var Gedpro = (function() {
 		this.editor = reg.getAttribute('siglaEditor');
 		this.dataVersao = reg.getAttribute('dataHoraEdicao');
 	};
-	GedproDoc.prototype = new GedproNode;
+	GedproDoc.prototype = new GedproNode();
 	GedproDoc.prototype.constructor = GedproDoc;
 	GedproDoc.prototype.getClasse = function() {
 		if (this.maiorAcesso >= 8) {
@@ -227,19 +224,19 @@ var Gedpro = (function() {
 		GedproNode.apply(this, arguments);
 		this.rotulo = 'Documentos do GEDPRO';
 	};
-	GedproProcesso.prototype = new GedproNode;
+	GedproProcesso.prototype = new GedproNode();
 	GedproProcesso.prototype.constructor = GedproProcesso;
 	var GedproIncidente = function(reg) {
 		GedproNode.apply(this, arguments);
 		this.rotulo = reg.getAttribute('descricaoIncidente');
 	};
-	GedproIncidente.prototype = new GedproNode;
+	GedproIncidente.prototype = new GedproNode();
 	GedproIncidente.prototype.constructor = GedproIncidente;
 	var GedproDocComposto = function(reg) {
 		GedproNode.apply(this, arguments);
 		this.rotulo = reg.getAttribute('nomeTipoDocComposto') + ' ' + reg.getAttribute('identificador') + '/' + reg.getAttribute('ano');
 	};
-	GedproDocComposto.prototype = new GedproNode;
+	GedproDocComposto.prototype = new GedproNode();
 	GedproDocComposto.prototype.constructor = GedproDocComposto;
 	var GedproTabela = (function() {
 		var maiorIcone = 0;
@@ -249,7 +246,7 @@ var Gedpro = (function() {
 				createTable();
 			}
 			return table;
-		}
+		};
 		var createTable = function() {
 			table = document.createElement('table');
 			table.className = 'infraTable';
@@ -260,7 +257,7 @@ var Gedpro = (function() {
 				createTHead();
 			}
 			return tHead;
-		}
+		};
 		var numCells = 7;
 		var createTHead = function() {
 			var table = getTable();
@@ -451,7 +448,7 @@ var Gedpro = (function() {
 			var setPublicGroups = function() {
 				grupos = '11,28,82';
 				Gedpro.getGrupos(callback);
-			}
+			};
 			var onerror = function() {
 				Gedpro.warn('Não foi possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.');
 				return setPublicGroups();
@@ -536,7 +533,7 @@ var Gedpro = (function() {
 						}
 					}
 				});
-			}
+			};
 			Gedpro.getLink(getLinkCallback);
 		},
 		getNewLogin: function(e) {
@@ -668,7 +665,7 @@ var Eproc = {
 					if (possibleTh.textContent == texto) th = possibleTh;
 				});
 			} else {
-				var th = setas[0].parentNode;
+				th = setas[0].parentNode;
 				while (th.tagName.toLowerCase() != 'th') {
 					th = th.parentNode;
 				}
@@ -804,7 +801,7 @@ var Eproc = {
 				for (n in this.properties) {
 					props.push(n + ':' + this.properties[n]);
 				}
-				if (props.length == 0) {
+				if (props.length === 0) {
 					return this.clean;
 				}
 				return '<!-- {' + props.join(',') + '} -->' + this.clean;
@@ -874,7 +871,7 @@ var Eproc = {
 				GM_showPreferences();
 			}, false);
 			var img = document.createElement('img');
-			img.className = 'infraImg'
+			img.className = 'infraImg';
 			img.src = 'data:image/png;base64,' + GM_getBase64('chrome://eproc/skin/stapler-16.png');
 			a.appendChild(img);
 			div.appendChild(a);
@@ -946,7 +943,7 @@ var Eproc = {
 				icone.className = 'extraIconeAcao noprint';
 				getIcone = function() { return icone; };
 				return getIcone();
-			}
+			};
 
 			this.addToLink = function(link) {
 				link.insertBefore(getIcone(), link.firstChild);
@@ -961,14 +958,14 @@ var Eproc = {
 			Icone.call(this);
 			this.setSrc('../infra_css/imagens/' + arquivo);
 		}
-		InfraIcone.prototype = new Icone;
+		InfraIcone.prototype = new Icone();
 
 		function ChromeIcone(arquivo) {
 			Icone.call(this);
 			var mime = 'image/' + /...$/.exec(arquivo);
 			this.setSrc('data:' + mime + ';base64,' + GM_getBase64('chrome://eproc/skin/' + arquivo));
 		}
-		ChromeIcone.prototype = new Icone;
+		ChromeIcone.prototype = new Icone();
 		var acoes = getAcoes();
 		var botoesDesabilitados = Eproc.prefUsuario(5) == 'N';
 		if (acoes && !botoesDesabilitados) {
@@ -1127,7 +1124,7 @@ var Eproc = {
 
 		function getAcoes() {
 			var acoes = $$('#fldAcoes > center a');
-			if (acoes.length == 0) return false;
+			if (acoes.length === 0) return false;
 			return acoes;
 		}
 	},
@@ -1309,7 +1306,7 @@ var Eproc = {
 				var numero = row.cells[1].textContent.replace(/^ged_/, '');
 				var tipo = row.cells[2].textContent;
 				return new Doc(processo, numero, tipo);
-			}
+			};
 			var thead = form.querySelector('.infraTable > tbody > tr:first-child');
 			var th = document.createElement('th');
 			th.className = 'infraTh';
@@ -1391,7 +1388,7 @@ var Eproc = {
 		}
 
 		function isFirstPage() {
-			return $$('#selPaginacaoT').length == 0;
+			return $$('#selPaginacaoT').length === 0;
 		}
 
 		function getNextPage(div) {
