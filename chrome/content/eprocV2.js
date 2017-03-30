@@ -1222,7 +1222,9 @@ var Eproc = {
 					var storage = window.wrappedJSObject.localStorage;
 					if (storage.length) {
 						for (let key in storage) {
-							storage.removeItem(key);
+							if (/^ch\d+$/.test(key)) {
+								storage.removeItem(key);
+							}
 						}
 					}
 					$$('input[type=checkbox][id^="ch"]', div).forEach(function(input) {
