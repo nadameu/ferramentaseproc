@@ -7,85 +7,29 @@ function $$(selector, baseElement = document) {
 	return Array.from(elements);
 }
 
-const Util = {
-	extend: function(obj, ...propsGroup) {
-		propsGroup.forEach(props => {
-			for (let n in props) {
-				if (props.hasOwnProperty(n)) {
-					obj[n] = props[n];
-				}
-			}
-		});
-		return obj;
-	}
-};
-
-function CheckBox(preferencia, texto) {
-	var checkbox, label;
-
-	var me = this;
-	var createConjunto = function() {
-		checkbox = me.createCheckbox(me.preferencia());
-		label = me.createLabel(checkbox, texto);
-	};
-
-	Util.extend(this, {
-		getCheckbox: function() {
-			if (!checkbox) {
-				createConjunto();
-			}
-			return checkbox;
-		},
-		getLabel: function() {
-			if (!label) {
-				createConjunto();
-			}
-			return label;
-		},
-		preferencia: function(valor) {
-			if (typeof valor != 'undefined') {
-				return GM_setValue(preferencia, valor);
-			} else {
-				return GM_getValue(preferencia, false);
-			}
-		}
-	});
-
+function CheckBox(nomePreferencia, texto) {
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = GM_getValue(nomePreferencia, false);
+  const label = document.createElement('label');
+  label.className = 'infraLabel noprint';
+  label.appendChild(checkbox);
+  label.appendChild(document.createTextNode(' ' + texto));
+  this.getLabel = () => label;
+  this.vincularElementoClasse = (elemento, classe) => {
+    const alterarClasse = selecionado => {
+      const operacao = selecionado ? 'add' : 'remove';
+      elemento.classList[operacao](classe);
+    };
+    checkbox.addEventListener('change', evt => {
+      const selecionado = checkbox.checked;
+      GM_setValue(nomePreferencia, selecionado);
+      alterarClasse(selecionado);
+    });
+    alterarClasse(checkbox.checked);
+  };
 }
-CheckBox.prototype = {
-	createCheckbox: function(valor) {
-		var checkbox = document.createElement('input');
-		checkbox.type = 'checkbox';
-		checkbox.checked = valor;
-		return checkbox;
-	},
-	createLabel: function(checkbox, texto) {
-		var label = document.createElement('label');
-		label.className = 'infraLabel noprint';
-		label.appendChild(checkbox);
-		label.appendChild(document.createTextNode(' ' + texto));
-		return label;
-	},
-	vincularElementoClasse: function(elemento, classe) {
-		var me = this;
-		this.vincularModificacao(function(e) {
-			var valor = e.target.checked;
-			me.preferencia(valor);
-			alterarClasse(valor);
-		});
 
-		function alterarClasse(valor) {
-			if (valor)
-				elemento.classList.add(classe);
-			else
-				elemento.classList.remove(classe);
-		}
-		alterarClasse(this.preferencia());
-	},
-	vincularModificacao: function(fn) {
-		this.getCheckbox().addEventListener('change', fn, false);
-	}
-};
 var Gedpro = (function() {
 	var linkElement,
 		link,
