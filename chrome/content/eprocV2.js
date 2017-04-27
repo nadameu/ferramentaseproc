@@ -4,7 +4,7 @@ function $(selector, baseElement = document) {
 
 function $$(selector, baseElement = document) {
 	var elements = baseElement.querySelectorAll(selector);
-	return Array.prototype.slice.call(elements);
+	return Array.from(elements);
 }
 
 const Util = {
@@ -87,7 +87,12 @@ CheckBox.prototype = {
 	}
 };
 var Gedpro = (function() {
-	var linkElement, link, login, grupos, docsUrl, host;
+	var linkElement,
+		link,
+		login,
+		grupos,
+		docsUrl,
+		host;
 	var statuses = [],
 		buscando = false;
 	var GedproNodes = function(doc) {
@@ -139,7 +144,7 @@ var Gedpro = (function() {
 		'iT0': 'T',
 		'i00': 'Vazio',
 		'iI0': 'I',
-		'0': 'documento', // Em edição
+		'0': 'documento', // Em edi\u00e7\u00e3o
 		'1': 'chave', // Bloqueado
 		'2': 'valida', // Pronto para assinar
 		'3': 'assinatura', // Assinado
@@ -205,7 +210,7 @@ var Gedpro = (function() {
 		visitor.visitDoc(this);
 	};
 	GedproDoc.STATUSES = {
-		0: 'Em edição',
+		0: 'Em edi\u00e7\u00e3o',
 		1: 'Bloqueado',
 		2: 'Pronto para assinar',
 		3: 'Assinado',
@@ -238,7 +243,7 @@ var Gedpro = (function() {
 		var maiorIcone = 0;
 		var table;
 		var getTable = function() {
-			if (!table) {
+			if (! table) {
 				createTable();
 			}
 			return table;
@@ -249,7 +254,7 @@ var Gedpro = (function() {
 		};
 		var tHead;
 		var getTHead = function() {
-			if (!tHead) {
+			if (! tHead) {
 				createTHead();
 			}
 			return tHead;
@@ -260,7 +265,7 @@ var Gedpro = (function() {
 			table.deleteTHead();
 			tHead = table.createTHead();
 			var tr = tHead.insertRow(0);
-			['Documento', 'Número', 'Status', 'Data Documento', 'Criação', 'Edição'].forEach(function(text, i) {
+			['Documento', 'N\u00famero', 'Status', 'Data Documento', 'Cria\u00e7\u00e3o', 'Edi\u00e7\u00e3o'].forEach(function(text, i) {
 				var th = document.createElement('th');
 				th.className = 'infraTh';
 				th.textContent = text;
@@ -270,7 +275,7 @@ var Gedpro = (function() {
 		};
 		var tBody;
 		var getTBody = function() {
-			if (!tBody) {
+			if (! tBody) {
 				createTBody();
 			}
 			return tBody;
@@ -288,7 +293,7 @@ var Gedpro = (function() {
 		};
 		var tFoot;
 		var getTFoot = function() {
-			if (!tFoot) {
+			if (! tFoot) {
 				createTFoot();
 			}
 			return tFoot;
@@ -348,7 +353,7 @@ var Gedpro = (function() {
 					}, false);
 					cell.appendChild(link);
 				}
-				cell.appendChild(document.createTextNode('Página '));
+				cell.appendChild(document.createTextNode('P\u00e1gina '));
 				for (var p = 1; p <= maiorPagina; p++) {
 					if (p == pagina) {
 						var span = document.createElement('span');
@@ -386,7 +391,7 @@ var Gedpro = (function() {
 								menuFechar.style.visibility = 'visible';
 							}
 							var win = window.wrappedJSObject.documentosAbertos['' + Eproc.processo + node.codigo];
-							if (typeof win == 'object' && !win.closed) {
+							if (typeof win == 'object' && ! win.closed) {
 								return win.focus();
 							} else {
 								window.wrappedJSObject.documentosAbertos['' + Eproc.processo + node.codigo] = window.open('http://' + host + '/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=' + node.codigo, '' + Eproc.processo + node.codigo, 'menubar=0,resizable=1,status=0,toolbar=0,location=0,directories=0,scrollbars=1');
@@ -399,7 +404,7 @@ var Gedpro = (function() {
 				row.insertCell(row.cells.length).appendChild(doc.statusIcone.toImg());
 				row.insertCell(row.cells.length).innerHTML = doc.data;
 				row.insertCell(row.cells.length).innerHTML = doc.criador + '<br/>' + doc.dataCriacao;
-				row.insertCell(row.cells.length).innerHTML = 'Versão ' + doc.versao + ' por ' + doc.editor + ' em<br/>' + doc.dataVersao;
+				row.insertCell(row.cells.length).innerHTML = 'Vers\u00e3o ' + doc.versao + ' por ' + doc.editor + ' em<br/>' + doc.dataVersao;
 				return row;
 			}
 		};
@@ -411,7 +416,7 @@ var Gedpro = (function() {
 		},
 		getDocs: function(pagina) {
 			if (buscando) {
-				window.alert('A solicitação já foi enviada. Por favor aguarde.');
+				window.alert('A solicita\u00e7\u00e3o j\u00e1 foi enviada. Por favor aguarde.');
 				return;
 			}
 			buscando = true;
@@ -446,11 +451,11 @@ var Gedpro = (function() {
 				Gedpro.getGrupos(callback);
 			};
 			var onerror = function() {
-				Gedpro.warn('Não foi possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.');
+				Gedpro.warn('N\u00e3o foi poss\u00edvel obter os grupos do usu\u00e1rio.\nEstar\u00e3o acess\u00edveis apenas os documentos com visibilidade p\u00fablica.');
 				return setPublicGroups();
 			};
 			Gedpro.getLogin(function(login) {
-				Gedpro.pushStatus('Obtendo grupos do usuário...');
+				Gedpro.pushStatus('Obtendo grupos do usu\u00e1rio...');
 				GM_xmlhttpRequest({
 					method: 'GET',
 					url: 'http://' + host + '/arvore2.asp?modulo=Textos do Processo&processo=' + Eproc.processo + '&numeroProcessoVisual=NPV&localizadorProcesso=LP',
@@ -467,7 +472,7 @@ var Gedpro = (function() {
 					onerror: onerror
 				});
 			}, function() {
-				Gedpro.warn('Não é possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.');
+				Gedpro.warn('N\u00e3o \u00e9 poss\u00edvel obter os grupos do usu\u00e1rio.\nEstar\u00e3o acess\u00edveis apenas os documentos com visibilidade p\u00fablica.');
 				return setPublicGroups();
 			});
 		},
@@ -489,11 +494,11 @@ var Gedpro = (function() {
 							host = a.host;
 							Gedpro.getLink(callback);
 						} else {
-							Gedpro.error('Não foi possível obter o endereço do GEDPRO.');
+							Gedpro.error('N\u00e3o foi poss\u00edvel obter o endere\u00e7o do GEDPRO.');
 						}
 					}
 				};
-				Gedpro.pushStatus('Obtendo endereço do GEDPRO...');
+				Gedpro.pushStatus('Obtendo endere\u00e7o do GEDPRO...');
 				xhr.send();
 			});
 		},
@@ -510,7 +515,7 @@ var Gedpro = (function() {
 		getLoginForm: function(callback) {
 			var getLinkCallback;
 			getLinkCallback = function(link) {
-				Gedpro.pushStatus('Obtendo link de requisição de login...');
+				Gedpro.pushStatus('Obtendo link de requisi\u00e7\u00e3o de login...');
 				GM_xmlhttpRequest({
 					method: 'GET',
 					url: link,
@@ -525,7 +530,7 @@ var Gedpro = (function() {
 							var mainframe = 'http://' + host + mainframePage;
 							getLinkCallback(mainframe);
 						} else {
-							Gedpro.error('Não foi possível obter o link de requisição de login.');
+							Gedpro.error('N\u00e3o foi poss\u00edvel obter o link de requisi\u00e7\u00e3o de login.');
 						}
 					}
 				});
@@ -541,7 +546,7 @@ var Gedpro = (function() {
 		},
 		getLogin: function(callback, onerror) {
 			onerror = onerror || function() {
-				Gedpro.error('Não é possível fazer login no GEDPRO.');
+				Gedpro.error('N\u00e3o \u00e9 poss\u00edvel fazer login no GEDPRO.');
 			};
 			Gedpro.getLoginForm(function(loginForm) {
 				Gedpro.pushStatus('Verificando possibilidade de login...');
@@ -561,7 +566,7 @@ var Gedpro = (function() {
 		},
 		getXml: function(pagina, callback) {
 			Gedpro.getDocsUrl(function(docsUrl) {
-				Gedpro.pushStatus('Carregando página ' + pagina + ' da árvore de documentos...');
+				Gedpro.pushStatus('Carregando p\u00e1gina ' + pagina + ' da \u00e1rvore de documentos...');
 				GM_xmlhttpRequest({
 					method: 'GET',
 					url: docsUrl + '&pgtree=' + pagina,
@@ -573,7 +578,7 @@ var Gedpro = (function() {
 						callback(xml);
 					},
 					onerror: function(obj) {
-						Gedpro.error('Não foi possível carregar a página ' + pagina + ' da árvore de documentos.');
+						Gedpro.error('N\u00e3o foi poss\u00edvel carregar a p\u00e1gina ' + pagina + ' da \u00e1rvore de documentos.');
 					}
 				});
 			});
@@ -621,14 +626,14 @@ var Eproc = {
 		var windows = [];
 		for (let w in window.wrappedJSObject.documentosAbertos) {
 			var win = window.wrappedJSObject.documentosAbertos[w];
-			if (typeof win == 'object' && !win.closed) {
+			if (typeof win == 'object' && ! win.closed) {
 				windows.push(win);
 			}
 		}
 		var menuFechar = $('#extraFechar');
 		if (windows.length) {
 			var tela = /^processo_selecionar/.test(this.acao) ? 'Este processo' : 'Esta tela';
-			var msg = tela + ' possui ' + windows.length + ' ' + (windows.length > 1 ? 'janelas abertas' : 'janela aberta') + '.\nDeseja fechá-' + (windows.length > 1 ? 'las' : 'la') + '?';
+			var msg = tela + ' possui ' + windows.length + ' ' + (windows.length > 1 ? 'janelas abertas' : 'janela aberta') + '.\nDeseja fech\u00e1-' + (windows.length > 1 ? 'las' : 'la') + '?';
 			var resposta;
 			if (typeof e != 'undefined') {
 				resposta = GM_yesCancelNo('Janelas abertas', msg);
@@ -658,7 +663,8 @@ var Eproc = {
 				setas = $$('a[onclick="infraAcaoOrdenar(\'' + campo + '\',\'ASC\');"]');
 			if (setas.length !== 1) {
 				$$('.infraTh').forEach(function(possibleTh) {
-					if (possibleTh.textContent === texto) th = possibleTh;
+					if (possibleTh.textContent === texto)
+						th = possibleTh;
 				});
 			} else {
 				th = setas[0].parentNode;
@@ -669,13 +675,13 @@ var Eproc = {
 			return th;
 		};
 		var classeTh = findTh('DesClasseJudicial', 'Classe');
-		var juizoTh = findTh('SigOrgaoJuizo', 'Juízo');
+		var juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
 		var th = classeTh || juizoTh;
 		if (th === null) {
 			var tr = $$('tr[data-classe]');
 			if (tr.length > 0) {
 				let table;
-				for (table = tr[0].parentNode; table.tagName.toUpperCase() != 'TABLE'; table = table.parentNode);
+				for (table = tr[0].parentNode; table.tagName.toUpperCase() != 'TABLE'; table = table.parentNode) ;
 				$$('.infraTh', table).forEach(function(th) {
 					if (/^Classe( Judicial)?$/.test(th.textContent)) {
 						classeTh = th;
@@ -702,7 +708,7 @@ var Eproc = {
 				th.setAttribute('width', '');
 			});
 			Array.prototype.forEach.call(table.rows, function(tr) {
-				if (!tr.className.match(/infraTr(Clara|Escura)/)) return;
+				if (! tr.className.match(/infraTr(Clara|Escura)/)) return;
 				var links = tr.querySelectorAll('a[href]');
 				if (juizoTh) {
 					var color = null,
@@ -759,7 +765,7 @@ var Eproc = {
 	},
 	getStyle: function(id) {
 		var extraStyle = $('#' + id);
-		if (!extraStyle) {
+		if (! extraStyle) {
 			extraStyle = document.createElement('style');
 			extraStyle.id = id;
 			$('head').appendChild(extraStyle);
@@ -797,7 +803,7 @@ var Eproc = {
 		var pesquisaRapida = $('#txtNumProcessoPesquisaRapida');
 		if (pesquisaRapida) {
 			if ('placeholder' in pesquisaRapida) {
-				pesquisaRapida.setAttribute('placeholder', 'Nº. processo');
+				pesquisaRapida.setAttribute('placeholder', 'N\u00ba. processo');
 				pesquisaRapida.removeAttribute('value');
 				pesquisaRapida.removeAttribute('style');
 				pesquisaRapida.removeAttribute('onclick');
@@ -826,10 +832,10 @@ var Eproc = {
 			div.appendChild(a);
 			var upperDiv;
 			if (pesquisaRapida) {
-				for (upperDiv = pesquisaRapida.parentNode; upperDiv.className != 'infraAcaoBarraSistema'; upperDiv = upperDiv.parentNode);
+				for (upperDiv = pesquisaRapida.parentNode; upperDiv.className != 'infraAcaoBarraSistema'; upperDiv = upperDiv.parentNode) ;
 				upperDiv.parentNode.insertBefore(div, upperDiv.nextSibling.nextSibling.nextSibling);
 			} else if ($('#lnkSairSistema')) {
-				for (upperDiv = $('#lnkSairSistema').parentNode; upperDiv.className != 'infraAcaoBarraSistema'; upperDiv = upperDiv.parentNode);
+				for (upperDiv = $('#lnkSairSistema').parentNode; upperDiv.className != 'infraAcaoBarraSistema'; upperDiv = upperDiv.parentNode) ;
 				upperDiv.parentNode.insertBefore(div, upperDiv);
 			} else {
 				barra.appendChild(div);
@@ -851,15 +857,17 @@ var Eproc = {
 				var abrirComIE = GM_getValue('v2.ie.enable', true);
 				var botao = $('#extraConfiguracaoComplemento');
 				var mensagemMostrada = GM_getValue('v2.ie.mensagemmostrada', false);
-				if (botao && !mensagemMostrada) {
-					var naoMostrar = { value: false };
-					var confirmacao = GM_confirmCheck('Navegador padrão', 'Seu computador está configurado para abrir o Gedpro com o ' + (abrirComIE ? 'Internet Explorer' : 'Firefox') + '.\nCaso deseje mudar esta configuração, clique em "Cancelar".', 'Não mostrar esta mensagem novamente', naoMostrar);
+				if (botao && ! mensagemMostrada) {
+					var naoMostrar = {
+						value: false
+					};
+					var confirmacao = GM_confirmCheck('Navegador padr\u00e3o', 'Seu computador est\u00e1 configurado para abrir o Gedpro com o ' + (abrirComIE ? 'Internet Explorer' : 'Firefox') + '.\nCaso deseje mudar esta configura\u00e7\u00e3o, clique em "Cancelar".', 'N\u00e3o mostrar esta mensagem novamente', naoMostrar);
 					if (naoMostrar.value === true) {
 						GM_setValue('v2.ie.mensagemmostrada', true);
 					}
-					if (!confirmacao) {
+					if (! confirmacao) {
 						botao.scrollIntoView();
-						var tooltip = new Tooltip('<p style="font-weight: bold;">CONFIGURAÇÕES</p><p>Este ícone permite acessar as configurações a qualquer momento.</p><p>Na aba "e-Proc V2", marque ou desmarque a opção "Abrir Gedpro com Internet Explorer".</p>');
+						var tooltip = new Tooltip('<p style="font-weight: bold;">CONFIGURA\u00e7\u00d5ES</p><p>Este \u00edcone permite acessar as configura\u00e7\u00f5es a qualquer momento.</p><p>Na aba "e-Proc V2", marque ou desmarque a op\u00e7\u00e3o "Abrir Gedpro com Internet Explorer".</p>');
 						tooltip.vincular(botao);
 						window.addEventListener('resize', tooltip.desenhar, false);
 						botao.addEventListener('click', function(e) {
@@ -892,7 +900,9 @@ var Eproc = {
 				icone.width = 16;
 				icone.height = 16;
 				icone.className = 'extraIconeAcao noprint';
-				getIcone = function() { return icone; };
+				getIcone = function() {
+					return icone;
+				};
 				return getIcone();
 			};
 
@@ -919,19 +929,19 @@ var Eproc = {
 		ChromeIcone.prototype = new Icone();
 		var acoes = getAcoes();
 		var botoesDesabilitados = Eproc.prefUsuario(5) == 'N';
-		if (acoes && !botoesDesabilitados) {
+		if (acoes && ! botoesDesabilitados) {
 			var fieldset = $('#fldAcoes');
 			var legend = $('legend', fieldset);
 			if (legend) {
 				var opcoes = document.createElement('div');
 				opcoes.className = 'extraAcoesOpcoes noprint';
 				legend.appendChild(opcoes);
-				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
+				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar \u00edcones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
 			}
 			acoes.forEach(function(acao) {
-				if (!acao.classList.contains('infraButton')) {
+				if (! acao.classList.contains('infraButton')) {
 					acao.classList.add('extraLinkAcao');
 				}
 				var sublinhados = $$('u', acao);
@@ -939,13 +949,15 @@ var Eproc = {
 					var u = sublinhados[0];
 					u.parentNode.replaceChild(u.childNodes[0], u);
 				}
-				if (!acao.href) {
+				if (! acao.href) {
 					if (/window\.open/.test(acao.getAttribute('onclick'))) {
 						acao.href = /window\.open\(['"]([^'"]+)/.exec(acao.getAttribute('onclick'))[1];
 					} else {
 						acao.href = '#';
 					}
-					acao.addEventListener('click', function(e) { e.preventDefault(); }, false);
+					acao.addEventListener('click', function(e) {
+						e.preventDefault();
+					}, false);
 				}
 				var acaoControlador = /\?acao=([^&]+)/.exec(acao.href);
 				var dispararOriginal = false;
@@ -1101,9 +1113,11 @@ var Eproc = {
 			var estilo = getStyleElement(name);
 			var media = (name == 'print') ? 'print' : 'screen';
 			estilo.media = media;
-			if (typeof name == 'undefined') name = 'screen';
+			if (typeof name == 'undefined')
+				name = 'screen';
 			var css = '.no' + name + ' { display: none; }\n';
-			if (name == 'screen') name = 'eprocV2';
+			if (name == 'screen')
+				name = 'eprocV2';
 			css += getCss(name);
 			estilo.innerHTML = css;
 		}
@@ -1132,7 +1146,7 @@ var Eproc = {
 					break;
 
 				case 'stock':
-					/* falls through */
+				/* falls through */
 				default:
 					skin = 'stock';
 					break;
@@ -1156,8 +1170,8 @@ var Eproc = {
 		var botao = $('#lnkConfiguracaoSistema');
 		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes4mostradas', false);
 		if (botao) {
-			if (!novasConfiguracoesMostradas) {
-				var resposta = GM_yesNo('Novas configurações', 'Você deve configurar algumas opções antes de continuar.\n\nDeseja abrir a tela de configurações agora?');
+			if (! novasConfiguracoesMostradas) {
+				var resposta = GM_yesNo('Novas configura\u00e7\u00f5es', 'Voc\u00ea deve configurar algumas op\u00e7\u00f5es antes de continuar.\n\nDeseja abrir a tela de configura\u00e7\u00f5es agora?');
 				if (resposta == 'YES') {
 					window.location.href = botao.href;
 				}
@@ -1246,7 +1260,9 @@ var Eproc = {
 			}
 			linkGedpro = 'http://gedpro.' + host + '.jus.br/visualizarDocumentos.asp?codigoDocumento=';
 			var Doc = function(processo, numero, tipo) {
-				this.toString = function() { return [tipo, numero].join(' '); };
+				this.toString = function() {
+					return [tipo, numero].join(' ');
+				};
 				this.link = document.createElement('a');
 				this.link.textContent = this.toString();
 				this.link.href = linkGedpro + numero;
@@ -1300,7 +1316,7 @@ var Eproc = {
 				transformed = true;
 				this.removeTrigger();
 				this.classList.remove('extraLinkAcao');
-				this.textContent = 'Falta de permissão de acesso?';
+				this.textContent = 'Falta de permiss\u00e3o de acesso?';
 				this.addEventListener('click', Gedpro.getNewLogin, false);
 			};
 			div.appendChild(linkCargaDocs);
@@ -1344,11 +1360,12 @@ var Eproc = {
 		}
 
 		function getNextPage(div) {
-			if (typeof div == 'undefined') div = document;
+			if (typeof div == 'undefined')
+				div = document;
 			var pageSelector = $('#selPaginacaoR', div);
-			if (!pageSelector) return null;
+			if (! pageSelector) return null;
 			var nextPage = $('#selPaginacaoR + a', pageSelector.parentNode);
-			if (!nextPage) return null;
+			if (! nextPage) return null;
 			return nextPage;
 		}
 		$$('.infraTable').forEach(function(table, t, tables) {
@@ -1358,7 +1375,7 @@ var Eproc = {
 		});
 
 		function applyTableModifications(table) {
-			if (!table.tHead) {
+			if (! table.tHead) {
 				table.createTHead();
 				var firstRow = table.rows[0];
 				if (firstRow.cells[0].tagName == 'TH') {
@@ -1390,7 +1407,7 @@ var Eproc = {
 				var numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent);
 				if (/Refer\. ao Evento: \d+$/.test(texto)) {
 					var eventoReferido = /\d+$/.exec(texto);
-					if (!(eventoReferido in eventosReferidos)) {
+					if (! (eventoReferido in eventosReferidos)) {
 						eventosReferidos[eventoReferido] = [];
 					}
 					eventosReferidos[eventoReferido].push(tr);
@@ -1456,8 +1473,10 @@ var Eproc = {
 		var numprocF = '';
 		for (let i = 0, len = numproc.length; i < len; i++) {
 			let d = numproc.substr(i, 1);
-			if (i == 7) numprocF += '-';
-			if (i == 9 || i == 13 || i == 16) numprocF += '.';
+			if (i == 7)
+				numprocF += '-';
+			if (i == 9 || i == 13 || i == 16)
+				numprocF += '.';
 			numprocF += d;
 		}
 		return numprocF;
@@ -1493,10 +1512,10 @@ var Eproc = {
 
 		var botao = $('#lnkConfiguracaoSistema');
 		var novasConfiguracoesMostradas = GM_getValue('v2.novasconfiguracoes4mostradas', false);
-		if (botao && !novasConfiguracoesMostradas) {
-			window.alert('Por favor, verifique se todas as configurações estão de acordo com suas preferências.');
+		if (botao && ! novasConfiguracoesMostradas) {
+			window.alert('Por favor, verifique se todas as configura\u00e7\u00f5es est\u00e3o de acordo com suas prefer\u00eancias.');
 			novasConfiguracoesMostradas = GM_setValue('v2.novasconfiguracoes4mostradas', true);
-			var tooltip = new Tooltip('Este ícone permite acessar novamente as configurações a qualquer momento.');
+			var tooltip = new Tooltip('Este \u00edcone permite acessar novamente as configura\u00e7\u00f5es a qualquer momento.');
 			tooltip.vincular(botao);
 			window.addEventListener('resize', tooltip.desenhar, false);
 			botao.addEventListener('mouseover', tooltip.ocultar, false);
@@ -1511,7 +1530,8 @@ function Tooltip(texto) {
 	var img = div.firstChild;
 	div.innerHTML = '<div style="position: absolute; background: lightyellow; border: 1px solid black; font-size: 1.2em; width: 30ex; text-align: center; padding: 10px;">' + texto + '</div>';
 	div = div.firstChild;
-	var elementoVinculado, x = 0,
+	var elementoVinculado,
+		x = 0,
 		y = 0;
 	this.vincular = function(elemento) {
 		elementoVinculado = elemento;
