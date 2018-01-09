@@ -5,6 +5,7 @@
   <RDF:Description RDF:about="urn:mozilla:install-manifest"
                    em:id="eproc@nadameu.com.br"
                    em:name="Ferramentas e-Proc"
+                   em:type="2"
                    em:version="0.38"
                    em:creator="Paulo Roberto Maurici Junior"
                    em:iconURL="chrome://eproc/skin/stapler-32.png"
