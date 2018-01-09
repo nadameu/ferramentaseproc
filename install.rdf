@@ -6,7 +6,7 @@
                    em:id="eproc@nadameu.com.br"
                    em:name="Ferramentas e-Proc"
                    em:type="2"
-                   em:version="0.38"
+                   em:version="0.38.1"
                    em:creator="Paulo Roberto Maurici Junior"
                    em:iconURL="chrome://eproc/skin/stapler-32.png"
                    em:homepageURL="https://eproc.trf4.jus.br/eproc2trf4/ajuda/plugin/"
