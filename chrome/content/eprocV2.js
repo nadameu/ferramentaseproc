@@ -450,7 +450,7 @@ var Gedpro = (function() {
 			if (linkElement) {
 				return callback(linkElement);
 			}
-			var links = $$('a[onclick^="window.open(\'processo/acessar_processo_gedpro.php?acao=acessar_processo_gedpro"], a[href^="processo/acessar_processo_gedpro.php?acao=acessar_processo_gedpro"]');
+			var links = $$('a[href^="view/movimentacao/acessar_processo_gedpro.php?acao=acessar_processo_gedpro&"]');
 			if (links.length == 1) {
 				linkElement = links[0];
 				Gedpro.getLinkElement(callback);
