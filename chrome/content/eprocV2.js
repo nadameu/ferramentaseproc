@@ -1528,33 +1528,59 @@ var Eproc = {
 			);
 			fechar.appendChild(fecharLink);
 			menu.appendChild(fechar);
-			var setFecharProperties = function() {
-				var staticArgs = Array.prototype.slice.call(arguments);
-				['position', 'top', 'width'].forEach(function(property, p) {
-					fechar.style[property] = staticArgs[p];
-				});
+			var fecharFixado = false,
+				fecharAltura,
+				fecharY,
+				posicaoIdeal,
+				paginaY;
+			var desafixar = function() {
+				fechar.style.position = '';
+				fechar.style.top = '';
+				fechar.style.width = '';
+				fecharFixado = false;
 			};
-			var onWindowScroll = function() {
-				setFecharProperties('', '', '');
-				var fecharOffsetTop = fechar.offsetTop;
-				var fecharHeight = fechar.clientHeight;
-				var minimumOffset = (window.innerHeight - fecharHeight) / 2;
-				if (fecharOffsetTop - window.pageYOffset < minimumOffset) {
-					setFecharProperties(
-						'fixed',
-						`${minimumOffset}px`,
-						`${menu.clientWidth}px`
-					);
-				}
+			var tempoLimite,
+				aguardando = false;
+			var atrasar = function(callback, ms) {
+				tempoLimite = window.performance.now() + ms;
+				aguardando ||
+					(window.requestAnimationFrame(function aguardar(timestamp) {
+						timestamp < tempoLimite
+							? window.requestAnimationFrame(aguardar)
+							: (callback(), aguardando = false);
+					}),
+						aguardando = true);
 			};
-			['scroll', 'resize'].forEach(function(eventName) {
-				window.addEventListener(eventName, onWindowScroll, false);
-			});
-			$('#lnkInfraMenuSistema').addEventListener(
-				'click',
-				onWindowScroll,
-				false
-			);
+			var atualizando = false;
+			var atualizar = function() {
+				fecharY - paginaY < posicaoIdeal
+					? fecharFixado ||
+						(fechar.style.position = 'fixed',
+							fechar.style.top = `${posicaoIdeal }px`,
+							fechar.style.width = `${menu.clientWidth }px`,
+							fecharFixado = true)
+					: fecharFixado && desafixar();
+				atualizando = false;
+			};
+			var onScroll = function() {
+				paginaY = window.pageYOffset;
+				atualizando ||
+					(window.requestAnimationFrame(atualizar), atualizando = true);
+			};
+			window.addEventListener('scroll', onScroll, false);
+			var calcularDimensoes = function() {
+				desafixar();
+				fecharAltura = fechar.clientHeight;
+				fecharY = fechar.offsetTop;
+				posicaoIdeal = (window.innerHeight - fecharAltura) / 2;
+				onScroll();
+			};
+			var onResize = function() {
+				atrasar(calcularDimensoes, 200);
+			};
+			window.addEventListener('resize', onResize, false);
+			$('#lnkInfraMenuSistema').addEventListener('click', onResize, false);
+			onResize();
 		}
 	},
 	isSegundoGrau: function() {
