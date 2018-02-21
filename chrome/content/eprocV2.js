@@ -1533,39 +1533,62 @@ var Eproc = {
 				fecharY,
 				posicaoIdeal,
 				paginaY;
+			var afixar = function() {
+				fechar.style.position = 'fixed';
+				fechar.style.top = `${posicaoIdeal}px`;
+				fechar.style.width = `${menu.clientWidth}px`;
+				fecharFixado = true;
+			};
 			var desafixar = function() {
 				fechar.style.position = '';
 				fechar.style.top = '';
 				fechar.style.width = '';
 				fecharFixado = false;
 			};
-			var tempoLimite,
-				aguardando = false;
-			var atrasar = function(callback, ms) {
-				tempoLimite = window.performance.now() + ms;
-				aguardando ||
-					(window.requestAnimationFrame(function aguardar(timestamp) {
-						timestamp < tempoLimite
-							? window.requestAnimationFrame(aguardar)
-							: (callback(), aguardando = false);
-					}),
-						aguardando = true);
+			var aguardarIntervalo = function(callback, ms) {
+				var aguardando = false;
+				var timestampUltimaChamada;
+				var checarTempo = function() {
+					if (window.Date.now() - timestampUltimaChamada < ms) {
+						window.requestAnimationFrame(checarTempo);
+					} else {
+						callback();
+						aguardando = false;
+					}
+				};
+				return function() {
+					timestampUltimaChamada = window.Date.now();
+					if (! aguardando) {
+						window.requestAnimationFrame(checarTempo);
+						aguardando = true;
+					}
+				};
 			};
-			var atualizando = false;
-			var atualizar = function() {
-				fecharY - paginaY < posicaoIdeal
-					? fecharFixado ||
-						(fechar.style.position = 'fixed',
-							fechar.style.top = `${posicaoIdeal }px`,
-							fechar.style.width = `${menu.clientWidth }px`,
-							fecharFixado = true)
-					: fecharFixado && desafixar();
-				atualizando = false;
+			var limitarExecucao = function(callback) {
+				var atualizando = false;
+				var atualizar = function() {
+					callback();
+					atualizando = false;
+				};
+				return function() {
+					if (! atualizando) {
+						window.requestAnimationFrame(atualizar);
+						atualizando = true;
+					}
+				};
 			};
+			var atualizar = limitarExecucao(function() {
+				if (fecharY - paginaY < posicaoIdeal) {
+					if (! fecharFixado) {
+						afixar();
+					}
+				} else if (fecharFixado) {
+					desafixar();
+				}
+			});
 			var onScroll = function() {
 				paginaY = window.pageYOffset;
-				atualizando ||
-					(window.requestAnimationFrame(atualizar), atualizando = true);
+				atualizar();
 			};
 			window.addEventListener('scroll', onScroll, false);
 			var calcularDimensoes = function() {
@@ -1575,12 +1598,11 @@ var Eproc = {
 				posicaoIdeal = (window.innerHeight - fecharAltura) / 2;
 				onScroll();
 			};
-			var onResize = function() {
-				atrasar(calcularDimensoes, 200);
-			};
+			var onResize = aguardarIntervalo(calcularDimensoes, 100);
 			window.addEventListener('resize', onResize, false);
 			$('#lnkInfraMenuSistema').addEventListener('click', onResize, false);
-			onResize();
+			var inicializar = aguardarIntervalo(calcularDimensoes, 200);
+			inicializar();
 		}
 	},
 	isSegundoGrau: function() {
