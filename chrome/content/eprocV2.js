@@ -1545,39 +1545,35 @@ var Eproc = {
 				fechar.style.width = '';
 				fecharFixado = false;
 			};
-			var aguardarIntervalo = function(callback, ms) {
-				var aguardando = false;
-				var timestampUltimaChamada;
-				var checarTempo = function() {
-					if (window.Date.now() - timestampUltimaChamada < ms) {
-						window.requestAnimationFrame(checarTempo);
-					} else {
-						callback();
-						aguardando = false;
-					}
-				};
+			var debounce = function(callback, ms) {
+				var timer, context, args;
 				return function() {
-					timestampUltimaChamada = window.Date.now();
-					if (! aguardando) {
-						window.requestAnimationFrame(checarTempo);
-						aguardando = true;
-					}
+					window.clearTimeout(timer);
+					context = this;
+					args = arguments;
+					timer = window.setTimeout(function() {
+						return callback.apply(context, args);
+					}, ms);
 				};
 			};
-			var limitarExecucao = function(callback) {
-				var atualizando = false;
+			var throttle = function(callback) {
+				var atualizando = false,
+					context,
+					args;
 				var atualizar = function() {
-					callback();
+					callback.apply(context, args);
 					atualizando = false;
 				};
 				return function() {
 					if (! atualizando) {
+						context = this;
+						args = arguments;
 						window.requestAnimationFrame(atualizar);
 						atualizando = true;
 					}
 				};
 			};
-			var atualizar = limitarExecucao(function() {
+			var atualizar = throttle(function() {
 				if (fecharY - paginaY < posicaoIdeal) {
 					if (! fecharFixado) {
 						afixar();
@@ -1598,10 +1594,10 @@ var Eproc = {
 				posicaoIdeal = (window.innerHeight - fecharAltura) / 2;
 				onScroll();
 			};
-			var onResize = aguardarIntervalo(calcularDimensoes, 100);
+			var onResize = debounce(calcularDimensoes, 50);
 			window.addEventListener('resize', onResize, false);
 			$('#lnkInfraMenuSistema').addEventListener('click', onResize, false);
-			var inicializar = aguardarIntervalo(calcularDimensoes, 200);
+			var inicializar = debounce(calcularDimensoes, 300);
 			inicializar();
 		}
 	},
