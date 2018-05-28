@@ -485,7 +485,7 @@ var Gedpro = (function() {
 				return callback(linkElement);
 			}
 			var links = $$(
-				'a[href^="view/movimentacao/acessar_processo_gedpro.php?acao=acessar_processo_gedpro&"]'
+				'a[href^="controlador.php?acao=acessar_processo_gedpro&"]'
 			);
 			if (links.length == 1) {
 				linkElement = links[0];
