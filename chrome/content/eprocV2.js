@@ -352,7 +352,9 @@ var Gedpro = (function() {
 								window.wrappedJSObject.documentosAbertos[
 									`${Eproc.processo}${node.codigo}`
 								] = window.open(
-									`http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${node.codigo}`,
+									`http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
+										node.codigo
+									}`,
 									`${Eproc.processo}${node.codigo}`,
 									'menubar=0,resizable=1,status=0,toolbar=0,location=0,directories=0,scrollbars=1'
 								);
@@ -365,12 +367,12 @@ var Gedpro = (function() {
 				row.insertCell(row.cells.length).innerHTML = doc.status;
 				row.insertCell(row.cells.length).appendChild(doc.statusIcone.toImg());
 				row.insertCell(row.cells.length).innerHTML = doc.data;
-				row.insertCell(
-					row.cells.length
-				).innerHTML = `${doc.criador}<br/>${doc.dataCriacao}`;
-				row.insertCell(
-					row.cells.length
-				).innerHTML = `Vers\u00e3o ${doc.versao} por ${doc.editor} em<br/>${doc.dataVersao}`;
+				row.insertCell(row.cells.length).innerHTML = `${doc.criador}<br/>${
+					doc.dataCriacao
+				}`;
+				row.insertCell(row.cells.length).innerHTML = `Vers\u00e3o ${
+					doc.versao
+				} por ${doc.editor} em<br/>${doc.dataVersao}`;
 				return row;
 			},
 		};
@@ -405,7 +407,9 @@ var Gedpro = (function() {
 				return callback(docsUrl);
 			}
 			Gedpro.getGrupos(function(grupos) {
-				docsUrl = `http://${host}/XMLInterface.asp?processo=${Eproc.processo}&ProcessoVisual=PV&grupos=${grupos}`;
+				docsUrl = `http://${host}/XMLInterface.asp?processo=${
+					Eproc.processo
+				}&ProcessoVisual=PV&grupos=${grupos}`;
 				Gedpro.getDocsUrl(callback);
 			});
 		},
@@ -428,7 +432,9 @@ var Gedpro = (function() {
 					Gedpro.pushStatus('Obtendo grupos do usu\u00e1rio...');
 					GM_xmlhttpRequest({
 						method: 'GET',
-						url: `http://${host}/arvore2.asp?modulo=Textos do Processo&processo=${Eproc.processo}&numeroProcessoVisual=NPV&localizadorProcesso=LP`,
+						url: `http://${host}/arvore2.asp?modulo=Textos do Processo&processo=${
+							Eproc.processo
+						}&numeroProcessoVisual=NPV&localizadorProcesso=LP`,
 						onload: function(obj) {
 							Gedpro.popStatus();
 							try {
@@ -644,11 +650,9 @@ var Eproc = {
 			var tela = /^processo_selecionar/.test(this.acao)
 				? 'Este processo'
 				: 'Esta tela';
-			var msg = `${tela} possui ${windows.length} ${windows.length > 1
-				? 'janelas abertas'
-				: 'janela aberta'}.\nDeseja fech\u00e1-${windows.length > 1
-				? 'las'
-				: 'la'}?`;
+			var msg = `${tela} possui ${windows.length} ${
+				windows.length > 1 ? 'janelas abertas' : 'janela aberta'
+			}.\nDeseja fech\u00e1-${windows.length > 1 ? 'las' : 'la'}?`;
 			var resposta;
 			if (typeof e != 'undefined') {
 				resposta = GM_yesCancelNo('Janelas abertas', msg);
@@ -911,9 +915,9 @@ var Eproc = {
 						};
 						var confirmacao = GM_confirmCheck(
 							'Navegador padr\u00e3o',
-							`Seu computador est\u00e1 configurado para abrir o Gedpro com o ${abrirComIE
-								? 'Internet Explorer'
-								: 'Firefox'}.\nCaso deseje mudar esta configura\u00e7\u00e3o, clique em "Cancelar".`,
+							`Seu computador est\u00e1 configurado para abrir o Gedpro com o ${
+								abrirComIE ? 'Internet Explorer' : 'Firefox'
+							}.\nCaso deseje mudar esta configura\u00e7\u00e3o, clique em "Cancelar".`,
 							'N\u00e3o mostrar esta mensagem novamente',
 							naoMostrar
 						);
@@ -1506,11 +1510,9 @@ var Eproc = {
 					var parte = $('.infraEventoPrazoParte', tr);
 					if (parte) {
 						eventosReferidos[numeroEvento].forEach(function(linha) {
-							linha.cells[
-								linha.cells.length - 3
-							].innerHTML += `<br>${`${colunaDescricao.innerHTML}<br>`.split(
-								'<br>'
-							)[1]}`;
+							linha.cells[linha.cells.length - 3].innerHTML += `<br>${
+								`${colunaDescricao.innerHTML}<br>`.split('<br>')[1]
+							}`;
 						});
 					}
 				}
@@ -1608,7 +1610,8 @@ var Eproc = {
 		var linkSecao = $('#divInfraBarraTribunalE a');
 		var estado = (linkSecao
 			? linkSecao.hostname
-			: window.location.hostname).match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/);
+			: window.location.hostname
+		).match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/);
 		if (estado) return estado[1];
 		return null;
 	},
