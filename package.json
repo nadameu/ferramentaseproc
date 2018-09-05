@@ -1,0 +1,23 @@
+{
+  "name": "ferramentaseproc",
+  "version": "1.0.0",
+  "description": "Complemento para o Firefox \"Ferramentas e-Proc\"",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nadameu/ferramentaseproc.git"
+  },
+  "keywords": [],
+  "author": "nadameu",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/nadameu/ferramentaseproc/issues"
+  },
+  "homepage": "https://github.com/nadameu/ferramentaseproc#readme",
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^58.0.3"
+  }
+}

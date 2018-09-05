@@ -1,5 +1,0 @@
-content    eproc                    chrome/content/
-resource   eproc                    modules/
-skin       eproc    classic/1.0     chrome/skin/
-
-overlay    chrome://browser/content/browser.xul    chrome://eproc/content/script-compiler-overlay.xul

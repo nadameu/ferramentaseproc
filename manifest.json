@@ -1,0 +1,62 @@
+{
+	"manifest_version": 2,
+	"name": "Ferramentas e-Proc",
+	"short_name": "Plugin eproc",
+	"version": "1.0.0",
+	"author": "Paulo Roberto Maurici Junior",
+	"homepage_url": "https://eproc.trf4.jus.br/eproc2trf4/ajuda/plugin/",
+	"applications": {
+		"gecko": {
+			"id": "eproc@nadameu.com.br",
+			"update_url": "https://eproc.trf4.jus.br/eproc2trf4/ajuda/plugin/repo/update.rdf"
+		}
+	},
+	"background": { "scripts": ["background.js"] },
+	"browser_action": {
+		"browser_style": false,
+		"default_icon": {
+			"16": "chrome/skin/stapler-16.png",
+			"32": "chrome/skin/stapler-32.png"
+		},
+		"default_title": "Ferramentas e-Proc"
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"https://eproc.trf4.jus.br/eproc2trf4/*",
+				"https://eproc.jfpr.jus.br/eprocV2/*",
+				"https://eproc.jfrs.jus.br/eprocV2/*",
+				"https://eproc.jfsc.jus.br/eprocV2/*"
+			],
+			"exclude_globs": ["controlador.php\\?acao=acessar_documento_implementacao"],
+			"js": ["chrome/content/eprocV2.js"],
+			"run_at": "document_end"
+		}
+	],
+	"icons": {
+		"48": "chrome/skin/stapler.png",
+		"96": "chrome/skin/stapler-96.png"
+	},
+	"options_ui": { "page": "chrome/content/options/options.html" },
+	"permissions": [
+		"activeTab",
+		"storage",
+		"tabs",
+		"https://eproc.trf4.jus.br/eproc2trf4/*",
+		"https://eproc.jfpr.jus.br/eprocV2/*",
+		"https://eproc.jfrs.jus.br/eprocV2/*",
+		"https://eproc.jfsc.jus.br/eprocV2/*",
+		"http://gedpro.jfpr.jus.br/*",
+		"http://gedpro2.jfpr.jus.br/*",
+		"http://gedpro.jfrs.jus.br/*",
+		"http://gedpro2.jfrs.jus.br/*",
+		"http://gedpro.jfsc.jus.br/*",
+		"http://gedpro2.jfsc.jus.br/*"
+	],
+	"web_accessible_resources": [
+		"chrome/skin/*.css",
+		"chrome/skin/*.gif",
+		"chrome/skin/*.jpg",
+		"chrome/skin/*.png"
+	]
+}
