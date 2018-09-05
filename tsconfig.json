@@ -4,9 +4,9 @@
 		"lib": ["dom", "scripthost", "es2016"],
 		"allowJs": true,
 		"checkJs": true,
-		"noEmit": true,
 		"strictFunctionTypes": true,
-		// "strictNullChecks": true,
-		"strictPropertyInitialization": true
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitAny": true
 	}
 }
