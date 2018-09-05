@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"target": "es2016",
+		"lib": ["dom", "scripthost", "es2016"],
+		"allowJs": true,
+		"checkJs": true,
+		"noEmit": true,
+		"strictFunctionTypes": true,
+		// "strictNullChecks": true,
+		"strictPropertyInitialization": true
+	}
+}

@@ -1,7 +1,16 @@
+/**
+ * @param {string} selector
+ * @param {NodeSelector} baseElement
+ * @returns {Element}
+ */
 function $(selector, baseElement = document) {
 	return baseElement.querySelector(selector);
 }
 
+/**
+ * @param {string} selector
+ * @param {NodeSelector} baseElement
+ */
 function $$(selector, baseElement = document) {
 	var elements = baseElement.querySelectorAll(selector);
 	return Array.from(elements);
@@ -9,7 +18,7 @@ function $$(selector, baseElement = document) {
 
 function CheckBox(nomePreferencia, texto) {
 	const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
+	checkbox.type = 'checkbox';
 	const promise = browser.storage.local
 		.get()
 		.then(obj => obj[nomePreferencia])
@@ -25,7 +34,7 @@ function CheckBox(nomePreferencia, texto) {
 	this.getLabel = () => label;
 	this.vincularElementoClasse = (elemento, classe) => {
 		const alterarClasse = selecionado => {
-      const operacao = selecionado ? 'add' : 'remove';
+			const operacao = selecionado ? 'add' : 'remove';
 			elemento.classList[operacao](classe);
 		};
 		checkbox.addEventListener('change', () => {
@@ -37,158 +46,177 @@ function CheckBox(nomePreferencia, texto) {
 				.catch(e => console.error(e));
 			alterarClasse(selecionado);
 		});
-		promise.then(()=>alterarClasse(checkbox.checked));
+		promise.then(() => alterarClasse(checkbox.checked));
 	};
 }
 
-var Gedpro = (function() {
+var Gedpro = (() => {
 	var linkElement, link, grupos, docsUrl, host;
 	var statuses = [],
 		buscando = false;
-	var GedproNodes = function(doc) {
-		$$('reg', doc).forEach(function(reg) {
-			var node = GedproNode.fromReg(reg);
-			this.maiorIcone = Math.max(this.maiorIcone, node.icones.length);
-			this.push(node);
-		}, this);
-	};
-	GedproNodes.prototype = [];
-	GedproNodes.prototype.constructor = GedproNodes;
+	class GedproNodes extends Array {
+		/**
+		 * @param {XMLDocument} doc
+		 */
+		constructor(doc) {
+			super();
+			$$('reg', doc).forEach(reg => {
+				this.push(GedproNode.fromReg(reg));
+			});
+			this.maiorIcone = this.reduce((maior, x) => Math.max(maior, x), 0);
+		}
+
+		accept(visitor) {
+			visitor.visitNodes(this);
+			this.forEach(node => visitor.visit(node));
+		}
+	}
 	GedproNodes.prototype.maiorIcone = 0;
-	GedproNodes.prototype.accept = function(visitor) {
-		visitor.visitNodes(this);
-		this.forEach(function(node) {
-			visitor.visit(node);
-		}, this);
-	};
-	var GedproIcones = function(str) {
-		for (var i = 0; i < str.length; i += 3) {
-			var icone = new GedproIcone(str.substr(i, 3));
-			this.push(icone);
+
+	class GedproIcones extends Array {
+		constructor(str) {
+			super();
+			for (let i = 0; i < str.length; i += 3) {
+				this.push(new GedproIcone(str.substr(i, 3)));
+			}
 		}
-	};
-	GedproIcones.prototype = [];
-	GedproIcones.prototype.constructor = GedproIcones;
-	var GedproIcone = function(str) {
-		if (str in GedproIcone.ARQUIVOS) {
-			this.arquivo = GedproIcone.ARQUIVOS[str];
+	}
+
+	class GedproIcone {
+		static get ARQUIVOS() {
+			return {
+				['iWO']: 'Word',
+				['iPO']: 'Papiro',
+				['PDF']: 'pdfgedpro',
+				['iPF']: 'PastaAberta',
+				['iL+']: 'L-',
+				['iT+']: 'T-',
+				['iL0']: 'L',
+				['iT0']: 'T',
+				['i00']: 'Vazio',
+				['iI0']: 'I',
+				['0']: 'documento', // Em edição
+				['1']: 'chave', // Bloqueado
+				['2']: 'valida', // Pronto para assinar
+				['3']: 'assinatura', // Assinado
+				['4']: 'fase', // Movimentado
+				['5']: 'procedimentos', // Devolvido
+				['6']: 'localizador', // Arquivado
+				['7']: 'excluidos', // Anulado
+				['8']: 'abrirbloco', // Conferido
+			};
 		}
-	};
-	GedproIcone.prototype = {
-		arquivo: 'Vazio',
-		toImg: function() {
-			var img = document.createElement('img');
+
+		constructor(str) {
+			if (str in GedproIcone.ARQUIVOS) {
+				this.arquivo = GedproIcone.ARQUIVOS[str];
+			}
+		}
+
+		toImg() {
+			const img = document.createElement('img');
 			img.className = 'extraGedproImg';
 			img.src = `http://${host}/images/${this.arquivo}.gif`;
 			return img;
-		},
-	};
-	GedproIcone.ARQUIVOS = {
-		iWO: 'Word',
-		iPO: 'Papiro',
-		PDF: 'pdfgedpro',
-		iPF: 'PastaAberta',
-		'iL+': 'L-',
-		'iT+': 'T-',
-		iL0: 'L',
-		iT0: 'T',
-		i00: 'Vazio',
-		iI0: 'I',
-		'0': 'documento', // Em edi\u00e7\u00e3o
-		'1': 'chave', // Bloqueado
-		'2': 'valida', // Pronto para assinar
-		'3': 'assinatura', // Assinado
-		'4': 'fase', // Movimentado
-		'5': 'procedimentos', // Devolvido
-		'6': 'localizador', // Arquivado
-		'7': 'excluidos', // Anulado
-		'8': 'abrirbloco', // Conferido
-	};
-	var GedproNode = function(reg) {
-		if (typeof reg == 'undefined') return;
-		this.icones = new GedproIcones(reg.getAttribute('icones'));
-	};
-	GedproNode.prototype = {
-		rotulo: '',
-		accept: function(visitor) {
+		}
+	}
+	GedproIcone.prototype.arquivo = 'Vazio';
+
+	class GedproNode {
+		constructor(reg) {
+			if (reg === undefined) return;
+			this.icones = new GedproIcone(reg.getAttribute('icones'));
+		}
+
+		accept(visitor) {
 			visitor.visitNode(this);
-		},
-	};
-	GedproNode.fromReg = function(reg) {
-		switch (reg.getAttribute('codigoTipoNodo')) {
-			case '-1':
-				return new GedproDocComposto(reg);
-
-			case '0':
-				return new GedproProcesso(reg);
-
-			case '1':
-				return new GedproIncidente(reg);
-
-			case '2':
-				return new GedproDoc(reg);
 		}
-	};
-	var GedproDoc = function(reg) {
-		GedproNode.apply(this, arguments);
-		this.rotulo = reg.getAttribute('nomeTipoDocumentoExibicao');
-		this.maiorAcesso = reg.getAttribute('MaiorAcesso');
-		this.codigo = reg.getAttribute('codigoDocumento');
-		var statusDocumento = reg.getAttribute('statusDocumento');
-		this.status = GedproDoc.STATUSES[statusDocumento];
-		this.statusIcone = new GedproIcone(statusDocumento);
-		this.data = reg.getAttribute('dataDocumento');
-		this.criador = reg.getAttribute('siglaCriador');
-		this.dataCriacao = reg.getAttribute('dataCriacao');
-		this.versao = reg.getAttribute('numeroVersaoDocumento');
-		this.editor = reg.getAttribute('siglaEditor');
-		this.dataVersao = reg.getAttribute('dataHoraEdicao');
-	};
-	GedproDoc.prototype = new GedproNode();
-	GedproDoc.prototype.constructor = GedproDoc;
-	GedproDoc.prototype.getClasse = function() {
-		if (this.maiorAcesso >= 8) {
-			return 'extraGedproRotuloGreen';
-		} else if (this.maiorAcesso >= 2) {
-			return 'extraGedproRotuloBlue';
+
+		static fromReg(reg) {
+			switch (reg.getAttribute('codigoTipoNodo')) {
+				case '-1':
+					return new GedproDocComposto(reg);
+
+				case '0':
+					return new GedproProcesso(reg);
+
+				case '1':
+					return new GedproIncidente(reg);
+
+				case '2':
+					return new GedproDoc(reg);
+			}
 		}
-		return 'extraGedproRotuloGray';
-	};
-	GedproDoc.prototype.accept = function(visitor) {
-		visitor.visitDoc(this);
-	};
-	GedproDoc.STATUSES = {
-		0: 'Em edi\u00e7\u00e3o',
-		1: 'Bloqueado',
-		2: 'Pronto para assinar',
-		3: 'Assinado',
-		4: 'Movimentado',
-		5: 'Devolvido',
-		6: 'Arquivado',
-		7: 'Anulado',
-		8: 'Conferido',
-		9: 'Para conferir',
-	};
-	var GedproProcesso = function() {
-		GedproNode.apply(this, arguments);
-		this.rotulo = 'Documentos do GEDPRO';
-	};
-	GedproProcesso.prototype = new GedproNode();
-	GedproProcesso.prototype.constructor = GedproProcesso;
-	var GedproIncidente = function(reg) {
-		GedproNode.apply(this, arguments);
-		this.rotulo = reg.getAttribute('descricaoIncidente');
-	};
-	GedproIncidente.prototype = new GedproNode();
-	GedproIncidente.prototype.constructor = GedproIncidente;
-	var GedproDocComposto = function(reg) {
-		GedproNode.apply(this, arguments);
-		this.rotulo = `${reg.getAttribute('nomeTipoDocComposto')} ${reg.getAttribute(
-			'identificador'
-		)}/${reg.getAttribute('ano')}`;
-	};
-	GedproDocComposto.prototype = new GedproNode();
-	GedproDocComposto.prototype.constructor = GedproDocComposto;
+	}
+	GedproNode.prototype.rotulo = '';
+
+	class GedproDoc extends GedproNode {
+		static get STATUSES() {
+			return {
+				0: 'Em edição',
+				1: 'Bloqueado',
+				2: 'Pronto para assinar',
+				3: 'Assinado',
+				4: 'Movimentado',
+				5: 'Devolvido',
+				6: 'Arquivado',
+				7: 'Anulado',
+				8: 'Conferido',
+				9: 'Para conferir',
+			};
+		}
+		constructor(reg) {
+			super(reg);
+			this.rotulo = reg.getAttribute('nomeTipoDocumentoExibicao');
+			this.maiorAcesso = reg.getAttribute('MaiorAcesso');
+			this.codigo = reg.getAttribute('codigoDocumento');
+			var statusDocumento = reg.getAttribute('statusDocumento');
+			this.status = GedproDoc.STATUSES[statusDocumento];
+			this.statusIcone = new GedproIcone(statusDocumento);
+			this.data = reg.getAttribute('dataDocumento');
+			this.criador = reg.getAttribute('siglaCriador');
+			this.dataCriacao = reg.getAttribute('dataCriacao');
+			this.versao = reg.getAttribute('numeroVersaoDocumento');
+			this.editor = reg.getAttribute('siglaEditor');
+			this.dataVersao = reg.getAttribute('dataHoraEdicao');
+		}
+
+		accept(visitor) {
+			visitor.visitDoc(this);
+		}
+		getClasse() {
+			if (this.maiorAcesso >= 8) {
+				return 'extraGedproRotuloGreen';
+			} else if (this.maiorAcesso >= 2) {
+				return 'extraGedproRotuloBlue';
+			}
+			return 'extraGedproRotuloGray';
+		}
+	}
+
+	class GedproProcesso extends GedproNode {
+		constructor(reg) {
+			super(reg);
+			this.rotulo = 'Documentos do GEDPRO';
+		}
+	}
+
+	class GedproIncidente extends GedproNode {
+		constructor(reg) {
+			super(reg);
+			this.rotulo = reg.getAttribute('descricaoIncidente');
+		}
+	}
+
+	class GedproDocComposto extends GedproNode {
+		constructor(reg) {
+			super(reg);
+			this.rotulo = `${reg.getAttribute('nomeTipoDocComposto')} ${reg.getAttribute(
+				'identificador'
+			)}/${reg.getAttribute('ano')}`;
+		}
+	}
+
 	var GedproTabela = (function() {
 		var table;
 		var getTable = function() {
@@ -214,14 +242,9 @@ var Gedpro = (function() {
 			table.deleteTHead();
 			tHead = table.createTHead();
 			var tr = tHead.insertRow(0);
-			[
-				'Documento',
-				'N\u00famero',
-				'Status',
-				'Data Documento',
-				'Cria\u00e7\u00e3o',
-				'Edi\u00e7\u00e3o',
-			].forEach(function(text) {
+			['Documento', 'Número', 'Status', 'Data Documento', 'Criação', 'Edição'].forEach(function(
+				text
+			) {
 				var th = document.createElement('th');
 				th.className = 'infraTh';
 				th.textContent = text;
@@ -311,12 +334,12 @@ var Gedpro = (function() {
 					);
 					cell.appendChild(link);
 				}
-				cell.appendChild(document.createTextNode('P\u00e1gina '));
+				cell.appendChild(document.createTextNode('Página '));
 				for (var p = 1; p <= maiorPagina; p++) {
 					if (p == pagina) {
 						var span = document.createElement('span');
 						span.className = 'extraGedproPaginaAtual';
-						span.textContent = pagina;
+						span.textContent = String(pagina);
 						cell.appendChild(span);
 					} else {
 						criaLinkPaginacaoGedpro(p, p);
@@ -350,11 +373,14 @@ var Gedpro = (function() {
 								if (menuFechar) {
 									menuFechar.style.visibility = 'visible';
 								}
-								var win = window.documentosAbertos[`${Eproc.processo}${node.codigo}`];
+								var win =
+									window.wrappedJSObject.documentosAbertos[`${Eproc.processo}${node.codigo}`];
 								if (typeof win == 'object' && !win.closed) {
 									return win.focus();
 								}
-								window.documentosAbertos[`${Eproc.processo}${node.codigo}`] = window.open(
+								window.wrappedJSObject.documentosAbertos[
+									`${Eproc.processo}${node.codigo}`
+								] = window.open(
 									`http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
 										node.codigo
 									}`,
@@ -371,7 +397,7 @@ var Gedpro = (function() {
 				row.insertCell(row.cells.length).appendChild(doc.statusIcone.toImg());
 				row.insertCell(row.cells.length).innerHTML = doc.data;
 				row.insertCell(row.cells.length).innerHTML = `${doc.criador}<br/>${doc.dataCriacao}`;
-				row.insertCell(row.cells.length).innerHTML = `Vers\u00e3o ${doc.versao} por ${
+				row.insertCell(row.cells.length).innerHTML = `Versão ${doc.versao} por ${
 					doc.editor
 				} em<br/>${doc.dataVersao}`;
 				return row;
@@ -385,7 +411,7 @@ var Gedpro = (function() {
 		},
 		getDocs: function(pagina) {
 			if (buscando) {
-				window.alert('A solicita\u00e7\u00e3o j\u00e1 foi enviada. Por favor aguarde.');
+				window.alert('A solicitação já foi enviada. Por favor aguarde.');
 				return;
 			}
 			buscando = true;
@@ -422,13 +448,13 @@ var Gedpro = (function() {
 			};
 			var onerror = function() {
 				Gedpro.warn(
-					'N\u00e3o foi poss\u00edvel obter os grupos do usu\u00e1rio.\nEstar\u00e3o acess\u00edveis apenas os documentos com visibilidade p\u00fablica.'
+					'Não foi possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.'
 				);
 				return setPublicGroups();
 			};
 			Gedpro.getLogin(
 				function() {
-					Gedpro.pushStatus('Obtendo grupos do usu\u00e1rio...');
+					Gedpro.pushStatus('Obtendo grupos do usuário...');
 					fetch(
 						`http://${host}/arvore2.asp?modulo=Textos do Processo&processo=${
 							Eproc.processo
@@ -440,6 +466,7 @@ var Gedpro = (function() {
 							try {
 								[, grupos] = text.match(/&grupos=([^&]+)&/);
 							} catch (e) {
+								console.error(text);
 								return onerror();
 							}
 							Gedpro.getGrupos(callback);
@@ -448,7 +475,7 @@ var Gedpro = (function() {
 				},
 				function() {
 					Gedpro.warn(
-						'N\u00e3o \u00e9 poss\u00edvel obter os grupos do usu\u00e1rio.\nEstar\u00e3o acess\u00edveis apenas os documentos com visibilidade p\u00fablica.'
+						'Não é possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.'
 					);
 					return setPublicGroups();
 				}
@@ -475,11 +502,11 @@ var Gedpro = (function() {
 							host = a.host;
 							Gedpro.getLink(callback);
 						} else {
-							Gedpro.error('N\u00e3o foi poss\u00edvel obter o endere\u00e7o do GEDPRO.');
+							Gedpro.error('Não foi possível obter o endereço do GEDPRO.');
 						}
 					}
 				};
-				Gedpro.pushStatus('Obtendo endere\u00e7o do GEDPRO...');
+				Gedpro.pushStatus('Obtendo endereço do GEDPRO...');
 				xhr.send();
 			});
 		},
@@ -496,7 +523,7 @@ var Gedpro = (function() {
 		getLoginForm: function(callback) {
 			var getLinkCallback;
 			getLinkCallback = function(link) {
-				Gedpro.pushStatus('Obtendo link de requisi\u00e7\u00e3o de login...');
+				Gedpro.pushStatus('Obtendo link de requisição de login...');
 				fetch(link)
 					.then(data => data.text())
 					.then(text => {
@@ -509,9 +536,7 @@ var Gedpro = (function() {
 							var mainframe = `http://${host}${mainframePage}`;
 							getLinkCallback(mainframe);
 						} else {
-							Gedpro.error(
-								'N\u00e3o foi poss\u00edvel obter o link de requisi\u00e7\u00e3o de login.'
-							);
+							Gedpro.error('Não foi possível obter o link de requisição de login.');
 						}
 					});
 			};
@@ -528,7 +553,7 @@ var Gedpro = (function() {
 			onerror =
 				onerror ||
 				function() {
-					Gedpro.error('N\u00e3o \u00e9 poss\u00edvel fazer login no GEDPRO.');
+					Gedpro.error('Não é possível fazer login no GEDPRO.');
 				};
 			Gedpro.getLoginForm(function(loginForm) {
 				Gedpro.pushStatus('Verificando possibilidade de login...');
@@ -546,7 +571,7 @@ var Gedpro = (function() {
 		},
 		getXml: (pagina, callback) => {
 			Gedpro.getDocsUrl(docsUrl => {
-				Gedpro.pushStatus(`Carregando p\u00e1gina ${pagina} da \u00e1rvore de documentos...`);
+				Gedpro.pushStatus(`Carregando página ${pagina} da árvore de documentos...`);
 				fetch(`${docsUrl}&pgtree=${pagina}`)
 					.then(data => data.text())
 					.then(text => {
@@ -556,9 +581,7 @@ var Gedpro = (function() {
 						callback(xml);
 					})
 					.catch(() => {
-						Gedpro.error(
-							`N\u00e3o foi poss\u00edvel carregar a p\u00e1gina ${pagina} da \u00e1rvore de documentos.`
-						);
+						Gedpro.error(`Não foi possível carregar a página ${pagina} da árvore de documentos.`);
 					});
 			});
 		},
@@ -619,8 +642,8 @@ var Eproc = {
 	},
 	closeAllWindows: function(e) {
 		var windows = [];
-		for (let w in window.documentosAbertos) {
-			var win = window.documentosAbertos[w];
+		for (let w in window.wrappedJSObject.documentosAbertos) {
+			var win = window.wrappedJSObject.documentosAbertos[w];
 			if (typeof win == 'object' && !win.closed) {
 				windows.push(win);
 			}
@@ -630,7 +653,7 @@ var Eproc = {
 			var tela = /^processo_selecionar/.test(this.acao) ? 'Este processo' : 'Esta tela';
 			var msg = `${tela} possui ${windows.length} ${
 				windows.length > 1 ? 'janelas abertas' : 'janela aberta'
-			}.\nDeseja fech\u00e1-${windows.length > 1 ? 'las' : 'la'}?`;
+			}.\nDeseja fechá-${windows.length > 1 ? 'las' : 'la'}?`;
 			var resposta = confirm(msg);
 			if (resposta === true) {
 				for (var w = windows.length - 1; w >= 0; w--) {
@@ -663,7 +686,7 @@ var Eproc = {
 			return th;
 		};
 		var classeTh = findTh('DesClasseJudicial', 'Classe');
-		var juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
+		var juizoTh = findTh('SigOrgaoJuizo', 'Juízo');
 		var th = classeTh || juizoTh;
 		if (th === null) {
 			var tr = $$('tr[data-classe]');
@@ -769,8 +792,8 @@ var Eproc = {
 		return false;
 	},
 	init: async function() {
-		if (window.eval('window.FeP || false')) {
-			analisarVersao(window.eval('window.FeP || false'));
+		if (window.wrappedJSObject.FeP) {
+			analisarVersao(window.wrappedJSObject.FeP);
 		}
 		this.pagina = window.location.pathname.split('/eprocV2/')[1];
 		this.parametros = {};
@@ -853,13 +876,6 @@ var Eproc = {
 		} else if (this.parametros.acao_origem && this[`${this.parametros.acao_origem}_destino`]) {
 			this[`${this.parametros.acao_origem}_destino`]();
 		}
-		window.addEventListener(
-			'beforeunload',
-			function() {
-				delete this.Eproc;
-			},
-			false
-		);
 
 		function Icone() {
 			var getIcone = function() {
@@ -902,7 +918,7 @@ var Eproc = {
 				var opcoes = document.createElement('div');
 				opcoes.className = 'extraAcoesOpcoes noprint';
 				legend.appendChild(opcoes);
-				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar \u00edcones');
+				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
 			}
@@ -1091,13 +1107,15 @@ var Eproc = {
 
 		$$(
 			'label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade'
-		).forEach(function(auto) {
-			var id = auto.id.replace('lblListar', 'txt');
+		).forEach(auto => {
+			const id = auto.id.replace('lblListar', 'txt');
 			auto = $(`#${id}`);
 			if (auto) {
-				auto.style.width = `${auto.clientWidth}px`;
+				const w = auto.clientWidth;
+				if (w === 0) return;
+				auto.style.width = `${w}px`;
 			}
-		}, this);
+		});
 
 		var estilosPersonalizados = $('link[href^="css/estilos.php?skin="]');
 		if (estilosPersonalizados) {
@@ -1139,7 +1157,7 @@ var Eproc = {
 		if (botao) {
 			if (!novasConfiguracoesMostradas) {
 				var resposta = confirm(
-					'Voc\u00ea deve configurar algumas op\u00e7\u00f5es antes de continuar.\n\nDeseja abrir a tela de configura\u00e7\u00f5es agora?'
+					'Você deve configurar algumas opções antes de continuar.\n\nDeseja abrir a tela de configurações agora?'
 				);
 				if (resposta === true) {
 					window.location.href = botao.href;
@@ -1260,7 +1278,7 @@ var Eproc = {
 				newCell.appendChild(doc.link);
 				row.parentNode.removeChild(row);
 			});
-			window.analisarDocs();
+			window.wrappedJSObject.analisarDocs();
 		}
 	},
 	processo_evento_paginacao_listar: function() {
@@ -1289,7 +1307,7 @@ var Eproc = {
 				transformed = true;
 				this.removeTrigger();
 				this.classList.remove('extraLinkAcao');
-				this.textContent = 'Falta de permiss\u00e3o de acesso?';
+				this.textContent = 'Falta de permissão de acesso?';
 				this.addEventListener('click', Gedpro.getNewLogin, false);
 			};
 			div.appendChild(linkCargaDocs);
@@ -1357,9 +1375,9 @@ var Eproc = {
 			$$('tr[class^="infraTr"], tr[bgcolor="#FFFACD"]', table).forEach(function(tr) {
 				var colunaDescricao = tr.cells[tr.cells.length - 3];
 				var texto = colunaDescricao.textContent;
-				var numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent);
+				var numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent)[0];
 				if (/Refer\. ao Evento: \d+$/.test(texto)) {
-					var eventoReferido = /\d+$/.exec(texto);
+					var eventoReferido = /\d+$/.exec(texto)[0];
 					if (!(eventoReferido in eventosReferidos)) {
 						eventosReferidos[eventoReferido] = [];
 					}
@@ -1520,16 +1538,16 @@ var Eproc = {
 		});
 
 		var botao = $('#lnkConfiguracaoSistema');
-		var novasConfiguracoesMostradas = (await browser.storage.local.get())
-			.novasconfiguracoes4mostradas || true;
+		var novasConfiguracoesMostradas =
+			(await browser.storage.local.get()).novasconfiguracoes4mostradas || true;
 		if (botao && !novasConfiguracoesMostradas) {
 			window.alert(
-				'Por favor, verifique se todas as configura\u00e7\u00f5es est\u00e3o de acordo com suas prefer\u00eancias.'
+				'Por favor, verifique se todas as configurações estão de acordo com suas preferências.'
 			);
 			novasConfiguracoesMostradas = true;
 			browser.storage.local.set({ novasconfiguracoes4mostradas: true });
 			var tooltip = new Tooltip(
-				'Este \u00edcone permite acessar novamente as configura\u00e7\u00f5es a qualquer momento.'
+				'Este ícone permite acessar novamente as configurações a qualquer momento.'
 			);
 			tooltip.vincular(botao);
 			window.addEventListener('resize', tooltip.desenhar, false);
@@ -1537,13 +1555,6 @@ var Eproc = {
 		}
 	},
 };
-/*
-var FeP = {
-  complementoInstalado: false,
-  numeroVersaoCompativel: '0.38.3',
-  versaoUsuarioCompativel: false
-};
-*/
 function analisarVersao(FeP) {
 	const numeroVersaoCompativel = FeP.numeroVersaoCompativel.split('.').map(Number);
 	const numeroVersaoInstalada = browser.runtime
@@ -1560,7 +1571,7 @@ function analisarVersao(FeP) {
 		(acc, x, i) => acc.concat(Ordering.compare(x, numeroVersaoCompativel[i])),
 		Ordering.empty()
 	).value;
-	window.eval(`FeP.versaoUsuarioCompativel = ${comparacao !== Ordering.LT}`);
+	window.wrappedJSObject.FeP.versaoUsuarioCompativel = comparacao !== Ordering.LT;
 }
 
 class Ordering {
