@@ -3,7 +3,7 @@ function $<T extends Element>(selector: string, baseElement: NodeSelector = docu
 }
 
 function $$<T extends Element>(selector: string, baseElement: NodeSelector = document) {
-	var elements = baseElement.querySelectorAll<T>(selector);
+	const elements = baseElement.querySelectorAll<T>(selector);
 	return Array.from(elements);
 }
 
@@ -77,7 +77,7 @@ const Gedpro = (() => {
 	class GedproIcones extends Array<GedproIcone> {
 		constructor(str: string) {
 			super();
-			for (var i = 0; i < str.length; i += 3) {
+			for (let i = 0; i < str.length; i += 3) {
 				this.push(new GedproIcone(str.substr(i, 3)));
 			}
 		}
@@ -166,27 +166,26 @@ const Gedpro = (() => {
 		versao: any;
 		editor: any;
 		dataVersao: any;
-		static get STATUSES() {
-			return {
-				0: 'Em edição',
-				1: 'Bloqueado',
-				2: 'Pronto para assinar',
-				3: 'Assinado',
-				4: 'Movimentado',
-				5: 'Devolvido',
-				6: 'Arquivado',
-				7: 'Anulado',
-				8: 'Conferido',
-				9: 'Para conferir',
-			};
-		}
+		static STATUSES = new Map([
+			['0', 'Em edição'],
+			['1', 'Bloqueado'],
+			['2', 'Pronto para assinar'],
+			['3', 'Assinado'],
+			['4', 'Movimentado'],
+			['5', 'Devolvido'],
+			['6', 'Arquivado'],
+			['7', 'Anulado'],
+			['8', 'Conferido'],
+			['9', 'Para conferir'],
+		]);
+
 		constructor(reg: Element) {
 			super(reg);
 			this.rotulo = reg.getAttribute('nomeTipoDocumentoExibicao');
 			this.maiorAcesso = reg.getAttribute('MaiorAcesso');
 			this.codigo = reg.getAttribute('codigoDocumento');
-			var statusDocumento = reg.getAttribute('statusDocumento');
-			this.status = GedproDoc.STATUSES[statusDocumento];
+			const statusDocumento = reg.getAttribute('statusDocumento');
+			this.status = GedproDoc.STATUSES.get(statusDocumento);
 			this.statusIcone = new GedproIcone(statusDocumento);
 			this.data = reg.getAttribute('dataDocumento');
 			this.criador = reg.getAttribute('siglaCriador');
@@ -321,7 +320,7 @@ const Gedpro = (() => {
 			getTable() {
 				return getTable();
 			},
-			visit(obj) {
+			visit(obj: GedproNodes) {
 				obj.accept(this);
 			},
 			visitNodes(nodes: GedproNodes) {
@@ -335,7 +334,7 @@ const Gedpro = (() => {
 				const cell = getTFoot().rows[0].cells[0];
 
 				function criaLinkPaginacaoGedpro(pagina: number, texto: number) {
-					var link = document.createElement('a');
+					const link = document.createElement('a');
 					link.href = '#cargaDocsGedpro';
 					link.textContent = String(texto);
 					link.addEventListener(
@@ -348,9 +347,9 @@ const Gedpro = (() => {
 					cell.appendChild(link);
 				}
 				cell.appendChild(document.createTextNode('Página '));
-				for (var p = 1; p <= maiorPagina; p++) {
+				for (let p = 1; p <= maiorPagina; p++) {
 					if (p == pagina) {
-						var span = document.createElement('span');
+						const span = document.createElement('span');
 						span.className = 'extraGedproPaginaAtual';
 						span.textContent = String(pagina);
 						cell.appendChild(span);
@@ -382,11 +381,12 @@ const Gedpro = (() => {
 						(e: MouseEvent) => {
 							e.preventDefault();
 							e.stopPropagation();
-							var menuFechar = $<HTMLLIElement>('#extraFechar');
+							const menuFechar = $<HTMLLIElement>('#extraFechar');
 							if (menuFechar) {
 								menuFechar.style.visibility = 'visible';
 							}
-							var win = window.wrappedJSObject.documentosAbertos[`${Eproc.processo}${node.codigo}`];
+							const win =
+								window.wrappedJSObject.documentosAbertos[`${Eproc.processo}${node.codigo}`];
 							if (typeof win == 'object' && !win.closed) {
 								return win.focus();
 							}
@@ -428,12 +428,12 @@ const Gedpro = (() => {
 			buscando = true;
 			pagina = typeof pagina == 'number' ? pagina : 1;
 			Gedpro.getXml(pagina, (xml: XMLDocument) => {
-				var nodes = new GedproNodes(xml);
+				const nodes = new GedproNodes(xml);
 				GedproTabela.visit(nodes);
-				var pai = $('#cargaDocsGedpro');
-				var linkCargaDocs = $('#linkCargaDocs');
+				const pai = $('#cargaDocsGedpro');
+				const linkCargaDocs = $<VLink>('#linkCargaDocs');
 				linkCargaDocs.transform();
-				var table = GedproTabela.getTable();
+				const table = GedproTabela.getTable();
 				pai.insertBefore(table, linkCargaDocs);
 				buscando = false;
 			});
@@ -525,7 +525,9 @@ const Gedpro = (() => {
 			if (linkElement) {
 				return callback(linkElement);
 			}
-			var links = $$<HTMLAnchorElement>('a[href^="controlador.php?acao=acessar_processo_gedpro&"]');
+			const links = $$<HTMLAnchorElement>(
+				'a[href^="controlador.php?acao=acessar_processo_gedpro&"]'
+			);
 			if (links.length == 1) {
 				linkElement = links[0];
 				Gedpro.getLinkElement(callback);
@@ -537,13 +539,13 @@ const Gedpro = (() => {
 				fetch(link)
 					.then(data => data.text())
 					.then(text => {
-						var formLogin = /FormLogin\.asp\?[^"]+/.exec(text);
-						var mainframePage = /\/mainframe\.asp\?[^"]+/.exec(text);
+						const formLogin = /FormLogin\.asp\?[^"]+/.exec(text);
+						const mainframePage = /\/mainframe\.asp\?[^"]+/.exec(text);
 						if (formLogin) {
-							var loginForm = `http://${host}/${formLogin}`;
+							const loginForm = `http://${host}/${formLogin}`;
 							return callback(loginForm);
 						} else if (mainframePage) {
-							var mainframe = `http://${host}${mainframePage}`;
+							const mainframe = `http://${host}${mainframePage}`;
 							getLinkCallback(mainframe);
 						} else {
 							Gedpro.error('Não foi possível obter o link de requisição de login.');
@@ -582,8 +584,8 @@ const Gedpro = (() => {
 					.then(data => data.text())
 					.then(text => {
 						Gedpro.popStatus();
-						var parser = new DOMParser();
-						var xml = parser.parseFromString(text, 'application/xml');
+						const parser = new DOMParser();
+						const xml = parser.parseFromString(text, 'application/xml');
 						callback(xml);
 					})
 					.catch(() => {
@@ -597,10 +599,10 @@ const Gedpro = (() => {
 			}, 100);
 		},
 		popStatus: function() {
-			var linkCargaDocs = $('#linkCargaDocs');
+			const linkCargaDocs = $('#linkCargaDocs');
 			if (linkCargaDocs) {
-				var oldText = linkCargaDocs.textContent;
-				var status = statuses.pop();
+				const oldText = linkCargaDocs.textContent;
+				const status = statuses.pop();
 				linkCargaDocs.textContent = status;
 				return oldText;
 			}
@@ -623,7 +625,7 @@ var Eproc = {
 	pagina: '',
 	processo: 0,
 	clicar(elemento: EventTarget) {
-		var evento = document.createEvent('MouseEvents');
+		const evento = document.createEvent('MouseEvents');
 		evento.initMouseEvent(
 			'click',
 			true,
@@ -644,22 +646,22 @@ var Eproc = {
 		elemento.dispatchEvent(evento);
 	},
 	closeAllWindows() {
-		var windows = [];
+		const windows = [];
 		for (let w in window.wrappedJSObject.documentosAbertos) {
-			var win = window.wrappedJSObject.documentosAbertos[w];
+			const win = window.wrappedJSObject.documentosAbertos[w];
 			if (typeof win == 'object' && !win.closed) {
 				windows.push(win);
 			}
 		}
-		var menuFechar = $<HTMLLIElement>('#extraFechar');
+		const menuFechar = $<HTMLLIElement>('#extraFechar');
 		if (windows.length) {
-			var tela = /^processo_selecionar/.test(this.acao) ? 'Este processo' : 'Esta tela';
-			var msg = `${tela} possui ${windows.length} ${
+			const tela = /^processo_selecionar/.test(this.acao) ? 'Este processo' : 'Esta tela';
+			const msg = `${tela} possui ${windows.length} ${
 				windows.length > 1 ? 'janelas abertas' : 'janela aberta'
 			}.\nDeseja fechá-${windows.length > 1 ? 'las' : 'la'}?`;
-			var resposta = confirm(msg);
+			const resposta = confirm(msg);
 			if (resposta === true) {
-				for (var w = windows.length - 1; w >= 0; w--) {
+				for (let w = windows.length - 1; w >= 0; w--) {
 					windows[w].close();
 				}
 				if (menuFechar) {
@@ -674,8 +676,8 @@ var Eproc = {
 	},
 	modificarTabelaProcessos: function() {
 		function findTh(campo: string, texto: string): HTMLTableHeaderCellElement {
-			var th = null,
-				setas = $$<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
+			let th = null;
+			const setas = $$<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
 			if (setas.length !== 1) {
 				$$('.infraTh').forEach(possibleTh => {
 					if (possibleTh.textContent === texto && possibleTh.matches('th')) th = possibleTh;
@@ -688,11 +690,11 @@ var Eproc = {
 			}
 			return th as HTMLTableHeaderCellElement;
 		}
-		var classeTh = findTh('DesClasseJudicial', 'Classe');
-		var juizoTh = findTh('SigOrgaoJuizo', 'Juízo');
-		var th = classeTh || juizoTh;
+		let classeTh = findTh('DesClasseJudicial', 'Classe');
+		const juizoTh = findTh('SigOrgaoJuizo', 'Juízo');
+		let th = classeTh || juizoTh;
 		if (th === null) {
-			var tr = $$('tr[data-classe]');
+			const tr = $$('tr[data-classe]');
 			if (tr.length > 0) {
 				let table;
 				for (
@@ -700,7 +702,7 @@ var Eproc = {
 					table !== null && !table.matches('table');
 					table = table.parentElement
 				);
-				$$('.infraTh', table).forEach(function(th) {
+				$$<HTMLTableHeaderCellElement>('.infraTh', table).forEach(function(th) {
 					if (/^Classe( Judicial)?$/.test(th.textContent)) {
 						classeTh = th;
 					}
@@ -709,7 +711,7 @@ var Eproc = {
 			th = classeTh;
 		}
 		if (th === null) {
-			$$('.infraTh').forEach(function(th) {
+			$$<HTMLTableHeaderCellElement>('.infraTh').forEach(function(th) {
 				if (/^Classe( Judicial)?$/.test(th.textContent.trim())) {
 					classeTh = th;
 				}
@@ -717,22 +719,19 @@ var Eproc = {
 			th = classeTh;
 		}
 		if (th !== null) {
-			var table = th.parentNode.parentNode;
-			while (table.tagName.toLowerCase() != 'table') {
-				table = table.parentNode;
-			}
+			const table = th.closest('table');
 			table.removeAttribute('width');
-			$$('th', table).forEach(function(th) {
+			$$<HTMLTableHeaderCellElement>('th', table).forEach(function(th) {
 				th.removeAttribute('width');
 			});
-			Array.prototype.forEach.call(table.rows, function(tr) {
+			table.rows.forEach(tr => {
 				if (!tr.className.match(/infraTr(Clara|Escura)/)) return;
 				if (juizoTh) {
-					var color = null,
-						juizoIndex = juizoTh.cellIndex,
-						juizoCell = tr.cells[juizoIndex],
-						juizoText = juizoCell.textContent,
-						juizo = juizoText[juizoText.length - 1];
+					let color = null;
+					const juizoIndex = juizoTh.cellIndex;
+					const juizoCell = tr.cells[juizoIndex];
+					const juizoText = juizoCell.textContent;
+					const juizo = juizoText[juizoText.length - 1];
 					if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
 						switch (juizo) {
 							case 'A':
@@ -769,8 +768,8 @@ var Eproc = {
 			});
 		}
 	},
-	corrigirCss: function(rule) {
-		var extra = Eproc.getStyle('extraCorrecaoCss');
+	corrigirCss: function(rule: string) {
+		const extra = Eproc.getStyle('extraCorrecaoCss');
 		extra.innerHTML = 'div.infraAreaDados { height: auto !important; overflow: inherit; }';
 		extra.innerHTML += rule;
 	},
@@ -780,8 +779,8 @@ var Eproc = {
 	entrar_cert: function() {
 		this.entrar();
 	},
-	getStyle: function(id) {
-		var extraStyle = $(`#${id}`);
+	getStyle: function(id: string) {
+		let extraStyle = $<HTMLStyleElement>(`#${id}`);
 		if (!extraStyle) {
 			extraStyle = document.createElement('style');
 			extraStyle.id = id;
@@ -790,7 +789,7 @@ var Eproc = {
 		return extraStyle;
 	},
 	getMenu: function() {
-		var menu = $('#main-menu');
+		const menu = $('#main-menu');
 		if (menu) return menu;
 		return false;
 	},
@@ -801,7 +800,7 @@ var Eproc = {
 		this.pagina = window.location.pathname.split('/eprocV2/')[1];
 		this.parametros = {};
 		for (
-			var p = 0,
+			let p = 0,
 				params = window.location.search
 					.split('?')
 					.splice(0)
@@ -811,7 +810,7 @@ var Eproc = {
 			p < params.length && (param = params[p]);
 			p++
 		) {
-			var nameValue = param.split('=');
+			const nameValue = param.split('=');
 			this.parametros[nameValue[0]] = nameValue[1];
 		}
 		if (this.parametros.acao) {
@@ -822,12 +821,12 @@ var Eproc = {
 			this.processo = this.parametros.num_processo;
 			delete this.parametros.num_processo;
 		}
-		var barraSistema = $('.infraBarraSistema');
+		const barraSistema = $('.infraBarraSistema');
 		if (barraSistema) {
 			await Eproc.mudaEstilos();
 		}
-		var pesquisaRapida = $('#txtNumProcessoPesquisaRapida');
-		if (pesquisaRapida) {
+		const pesquisaRapida = $<HTMLInputElement>('#txtNumProcessoPesquisaRapida');
+		if (pesquisaRapida && pesquisaRapida.matches('input')) {
 			if ('placeholder' in pesquisaRapida) {
 				pesquisaRapida.setAttribute('placeholder', 'Pesquisa');
 				pesquisaRapida.removeAttribute('value');
@@ -835,39 +834,31 @@ var Eproc = {
 				pesquisaRapida.removeAttribute('onclick');
 			}
 		}
-		var global = $('#divInfraAreaGlobal');
+		const global = $('#divInfraAreaGlobal');
 		if (global) {
-			var wrapper = document.createElement('div');
+			const wrapper = document.createElement('div');
 			wrapper.className = 'extraWrapper';
 			global.parentNode.insertBefore(wrapper, global);
 			wrapper.appendChild(global);
 		}
-		var barra = $('#divInfraBarraTribunalD');
+		const barra = $('#divInfraBarraTribunalD');
 		if (barra) {
-			var div = document.createElement('div');
+			const div = document.createElement('div');
 			div.className = 'infraAcaoBarraSistema';
-			var a = document.createElement('a');
+			const a = document.createElement('a');
 			a.id = 'extraConfiguracaoComplemento';
 			a.addEventListener('click', () => browser.runtime.sendMessage({ type: 'options' }), false);
-			var img = document.createElement('img');
+			const img = document.createElement('img');
 			img.className = 'infraImg';
 			img.src = browser.runtime.getURL('chrome/skin/stapler-16.png');
 			a.appendChild(img);
 			div.appendChild(a);
-			var upperDiv;
+			let upperDiv;
 			if (pesquisaRapida) {
-				for (
-					upperDiv = pesquisaRapida.parentNode;
-					upperDiv.className != 'infraAcaoBarraSistema';
-					upperDiv = upperDiv.parentNode
-				);
+				upperDiv = pesquisaRapida.closest('.infraAcaoBarraSistema');
 				upperDiv.parentNode.insertBefore(div, upperDiv.nextSibling.nextSibling.nextSibling);
 			} else if ($('#lnkSairSistema')) {
-				for (
-					upperDiv = $('#lnkSairSistema').parentNode;
-					upperDiv.className != 'infraAcaoBarraSistema';
-					upperDiv = upperDiv.parentNode
-				);
+				upperDiv = $('#lnkSairSistema').closest('.infraAcaoBarraSistema');
 				upperDiv.parentNode.insertBefore(div, upperDiv);
 			} else {
 				barra.appendChild(div);
@@ -880,48 +871,51 @@ var Eproc = {
 			this[`${this.parametros.acao_origem}_destino`]();
 		}
 
-		function Icone() {
-			var getIcone = function() {
-				var icone = document.createElement('img');
-				icone.width = 16;
-				icone.height = 16;
-				icone.className = 'extraIconeAcao noprint';
-				getIcone = function() {
-					return icone;
-				};
-				return getIcone();
-			};
+		class Icone {
+			private _icone: HTMLImageElement;
 
-			this.addToLink = function(link) {
-				link.insertBefore(getIcone(), link.firstChild);
-			};
+			addToLink(link: Node) {
+				link.insertBefore(this.getIcone(), link.firstChild);
+			}
 
-			this.setSrc = function(src) {
-				getIcone().src = src;
-			};
+			getIcone() {
+				if (!this._icone) {
+					this._icone = document.createElement('img');
+					this._icone.width = 16;
+					this._icone.height = 16;
+					this._icone.className = 'extraIconeAcao noprint';
+				}
+				return this._icone;
+			}
+			setSrc(src: string) {
+				this.getIcone().src = src;
+			}
 		}
 
-		function InfraIcone(arquivo) {
-			Icone.call(this);
-			this.setSrc(`infra_css/imagens/${arquivo}`);
+		class InfraIcone extends Icone {
+			constructor(arquivo: string) {
+				super();
+				this.setSrc(`infra_css/imagens/${arquivo}`);
+			}
 		}
-		InfraIcone.prototype = new Icone();
 
-		function ChromeIcone(arquivo) {
-			Icone.call(this);
-			this.setSrc(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+		class ChromeIcone extends Icone {
+			constructor(arquivo: string) {
+				super();
+				this.setSrc(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+			}
 		}
-		ChromeIcone.prototype = new Icone();
-		var acoes = getAcoes();
-		var botoesDesabilitados = Eproc.prefUsuario(5) == 'N';
+
+		const acoes = getAcoes();
+		const botoesDesabilitados = Eproc.prefUsuario(5) == 'N';
 		if (acoes && !botoesDesabilitados) {
-			var fieldset = $('#fldAcoes');
-			var legend = $('legend', fieldset);
+			const fieldset = $('#fldAcoes');
+			const legend = $('legend', fieldset);
 			if (legend) {
-				var opcoes = document.createElement('div');
+				const opcoes = document.createElement('div');
 				opcoes.className = 'extraAcoesOpcoes noprint';
 				legend.appendChild(opcoes);
-				var chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
+				const chkMostrarIcones = new CheckBox('v2.mostraricones', 'Mostrar ícones');
 				chkMostrarIcones.vincularElementoClasse(fieldset, 'extraAcoesMostrarIcones');
 				opcoes.appendChild(chkMostrarIcones.getLabel());
 			}
@@ -929,9 +923,9 @@ var Eproc = {
 				if (!acao.classList.contains('infraButton')) {
 					acao.classList.add('extraLinkAcao');
 				}
-				var sublinhados = $$('u', acao);
+				const sublinhados = $$('u', acao);
 				if (sublinhados.length == 1) {
-					var u = sublinhados[0];
+					const u = sublinhados[0];
 					u.parentNode.replaceChild(u.childNodes[0], u);
 				}
 				if (!acao.href) {
@@ -948,9 +942,9 @@ var Eproc = {
 						false
 					);
 				}
-				var acaoControlador = /\?acao=([^&]+)/.exec(acao.href);
+				const acaoControlador = /\?acao=([^&]+)/.exec(acao.href);
 				if (acaoControlador && acaoControlador.length == 2) {
-					var icone = null;
+					let icone = null;
 					switch (acaoControlador[1]) {
 						case 'acessar_processo_gedpro':
 							icone = new ChromeIcone('ie.png');
@@ -1064,7 +1058,7 @@ var Eproc = {
 					}
 				}
 				if (acao.nextSibling && acao.nextSibling.nodeType == document.TEXT_NODE) {
-					var span = document.createElement('span');
+					const span = document.createElement('span');
 					span.className = 'extraAcoesSeparador';
 					span.textContent = acao.nextSibling.textContent;
 					acao.parentNode.replaceChild(span, acao.nextSibling);
@@ -1073,18 +1067,18 @@ var Eproc = {
 		}
 
 		function getAcoes() {
-			var acoes = $$('#fldAcoes > center a');
+			const acoes = $$<HTMLAnchorElement>('#fldAcoes > center a');
 			if (acoes.length === 0) return false;
 			return acoes;
 		}
 	},
 	mudaEstilos: async function() {
-		function getCss(name) {
+		function getCss(name: string) {
 			return fetch(browser.runtime.getURL(`chrome/skin/${name}.css`)).then(data => data.text());
 		}
 
-		function getStyleElement(skin) {
-			var styleElementName;
+		function getStyleElement(skin?: string) {
+			let styleElementName;
 			if (typeof skin == 'undefined') {
 				styleElementName = 'extraMain';
 			} else if (skin == 'print') {
@@ -1095,12 +1089,12 @@ var Eproc = {
 			return Eproc.getStyle(styleElementName);
 		}
 
-		async function addStyleSheet(name) {
-			var estilo = getStyleElement(name);
-			var media = name == 'print' ? 'print' : 'screen';
+		async function addStyleSheet(name?: string) {
+			const estilo = getStyleElement(name);
+			const media = name == 'print' ? 'print' : 'screen';
 			estilo.media = media;
 			if (typeof name == 'undefined') name = 'screen';
-			var css = `.no${name} { display: none; }\n`;
+			let css = `.no${name} { display: none; }\n`;
 			if (name == 'screen') name = 'eprocV2';
 			css += await getCss(name);
 			estilo.innerHTML = css;
@@ -1108,7 +1102,7 @@ var Eproc = {
 		await addStyleSheet();
 		await addStyleSheet('print');
 
-		$$(
+		$$<HTMLLabelElement | HTMLInputElement>(
 			'label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade'
 		).forEach(auto => {
 			const id = auto.id.replace('lblListar', 'txt');
@@ -1120,10 +1114,10 @@ var Eproc = {
 			}
 		});
 
-		var estilosPersonalizados = $('link[href^="css/estilos.php?skin="]');
+		const estilosPersonalizados = $<HTMLLinkElement>('link[href^="css/estilos.php?skin="]');
 		if (estilosPersonalizados) {
-			var result = /\?skin=([^&]+)/.exec(estilosPersonalizados.href);
-			var skin;
+			const result = /\?skin=([^&]+)/.exec(estilosPersonalizados.href);
+			let skin;
 			switch (result[1]) {
 				case 'elegant':
 					skin = 'candy';
@@ -1142,37 +1136,37 @@ var Eproc = {
 			addStyleSheet(`${skin}-extra`);
 		}
 	},
-	usuario_tipo_monitoramento_localizador_listar: function() {
-		var linhas = $$('#divInfraAreaTabela tr[class^="infraTr"]');
+	usuario_tipo_monitoramento_localizador_listar() {
+		const linhas = $$('#divInfraAreaTabela tr[class^="infraTr"]');
 		if (linhas) {
 			this.decorarLinhasTabelaLocalizadores(linhas);
 		}
 	},
-	principal_destino: async function() {
+	async principal_destino() {
 		Eproc.corrigirCss('');
-		var linhas = $$('#fldProcessos tr[class^="infraTr"], #fldLocalizadores tr[class^="infraTr"]');
+		const linhas = $$('#fldProcessos tr[class^="infraTr"], #fldLocalizadores tr[class^="infraTr"]');
 		if (linhas) {
 			this.decorarLinhasTabelaLocalizadores(linhas);
 		}
-		var botao = $('#lnkConfiguracaoSistema');
-		var novasConfiguracoesMostradas =
+		const botao = $<HTMLAnchorElement>('#lnkConfiguracaoSistema');
+		const novasConfiguracoesMostradas =
 			(await browser.storage.local.get()).novasconfiguracoes4mostradas || true;
 		if (botao) {
 			if (!novasConfiguracoesMostradas) {
-				var resposta = confirm(
+				const resposta = confirm(
 					'Você deve configurar algumas opções antes de continuar.\n\nDeseja abrir a tela de configurações agora?'
 				);
 				if (resposta === true) {
 					window.location.href = botao.href;
 				}
 			}
-			var xhr = new XMLHttpRequest();
+			const xhr = new XMLHttpRequest();
 			xhr.open('GET', botao.href);
 			xhr.onreadystatechange = function() {
 				if (this.readyState == 4 && this.status == 200) {
-					var div = document.createElement('div');
+					const div = document.createElement('div');
 					div.innerHTML = this.responseText;
-					var storage = window.localStorage;
+					const storage = window.localStorage;
 					if (storage.length) {
 						for (let key in storage) {
 							if (/^ch\d+$/.test(key)) {
@@ -1180,21 +1174,21 @@ var Eproc = {
 							}
 						}
 					}
-					$$('input[type=checkbox][id^="ch"]', div).forEach(function(input) {
-						storage[input.id] = input.checked ? 'S' : 'N';
+					$$<HTMLInputElement>('input[type=checkbox][id^="ch"]', div).forEach(input => {
+						storage.setItem(input.id, input.checked ? 'S' : 'N');
 					});
 				}
 			};
 			xhr.send('');
 		}
 	},
-	decorarLinhasTabelaLocalizadores: function(linhas) {
-		linhas.forEach(function(linha) {
-			var link = getLink(linha);
-			var url = getUrl(link);
-			var processos = getQtdProcessos(link);
+	decorarLinhasTabelaLocalizadores(linhas: HTMLTableRowElement[]) {
+		linhas.forEach(linha => {
+			const link = getLink(linha);
+			const url = getUrl(link);
+			const processos = getQtdProcessos(link);
 			linha.classList.add('extraLocalizador');
-			linha.setAttribute('data-processos', processos);
+			linha.setAttribute('data-processos', String(processos));
 			if (processos > 0) {
 				linha.addEventListener(
 					'click',
@@ -1206,7 +1200,7 @@ var Eproc = {
 			}
 		});
 
-		function getLink(tr) {
+		function getLink(tr: HTMLTableRowElement) {
 			try {
 				return tr.cells[1].querySelector('a');
 			} catch (e) {
@@ -1214,7 +1208,7 @@ var Eproc = {
 			}
 		}
 
-		function getUrl(a) {
+		function getUrl(a: HTMLAnchorElement) {
 			try {
 				if (a.href) {
 					return a.href;
@@ -1226,83 +1220,84 @@ var Eproc = {
 			}
 		}
 
-		function getQtdProcessos(a) {
+		function getQtdProcessos(a: HTMLAnchorElement) {
 			try {
-				return a.textContent;
+				return Number(a.textContent);
 			} catch (e) {
 				return 0;
 			}
 		}
 	},
 	processo_cadastrar_2: function() {
-		var auto = $('#txtDesAssunto');
+		const auto = $<HTMLInputElement>('#txtDesAssunto');
 		if (auto) {
 			auto.style.width = `${auto.clientWidth}px`;
 		}
 	},
 	processo_consulta_listar: function() {
-		var form = $('#frmProcessoEventoLista');
+		const form = $<HTMLFormElement>('#frmProcessoEventoLista');
 		form.action = window.location.pathname + window.location.search;
-		var docsGedpro = $('#divDocumentosGedpro');
+		const docsGedpro = $('#divDocumentosGedpro');
 		if (docsGedpro) {
-			var linkSecao = $('#divInfraBarraTribunalE').getElementsByTagName('a')[0];
-			var estado = linkSecao.hostname.match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/),
-				host = 'trf4',
-				linkGedpro = null;
-			if (estado) {
-				host = `jf${estado[1]}`;
+			const linkSecao = $('#divInfraBarraTribunalE').getElementsByTagName('a')[0];
+			const estado = linkSecao.hostname.match(/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/);
+			const linkGedpro = `http://gedpro.${
+				estado ? `jf${estado[1]}` : 'trf4'
+			}.jus.br/visualizarDocumentos.asp?codigoDocumento=`;
+			class Doc {
+				link: HTMLAnchorElement;
+				constructor(numero: string, tipo: string) {
+					this.toString = function() {
+						return [tipo, numero].join(' ');
+					};
+					this.link = document.createElement('a');
+					this.link.textContent = this.toString();
+					this.link.href = linkGedpro + numero;
+					this.link.target = '_blank';
+					this.link.setAttribute('data-doc', numero);
+				}
+				static fromRow(row: HTMLTableRowElement) {
+					const numero = row.cells[1].textContent.replace(/^ged_/, '');
+					const tipo = row.cells[2].textContent;
+					return new Doc(numero, tipo);
+				}
 			}
-			linkGedpro = `http://gedpro.${host}.jus.br/visualizarDocumentos.asp?codigoDocumento=`;
-			var Doc = function(processo, numero, tipo) {
-				this.toString = function() {
-					return [tipo, numero].join(' ');
-				};
-				this.link = document.createElement('a');
-				this.link.textContent = this.toString();
-				this.link.href = linkGedpro + numero;
-				this.link.target = '_blank';
-				this.link.setAttribute('data-doc', numero);
-			};
-			Doc.fromRow = function(row) {
-				var processo = row.cells[0].textContent;
-				var numero = row.cells[1].textContent.replace(/^ged_/, '');
-				var tipo = row.cells[2].textContent;
-				return new Doc(processo, numero, tipo);
-			};
-			var thead = form.querySelector('.infraTable > tbody > tr:first-child');
-			var th = document.createElement('th');
+			const thead = form.querySelector('.infraTable > tbody > tr:first-child');
+			const th = document.createElement('th');
 			th.className = 'infraTh';
 			th.textContent = 'Documento Gedpro';
 			thead.appendChild(th);
-			var processos = form.querySelectorAll('.infraTable > tbody > tr[class^=infraTr]');
-			$$('tr[class^=infraTr]', docsGedpro).forEach(function(row, r) {
-				var doc = Doc.fromRow(row);
-				var newCell = processos[r].insertCell(processos[r].cells.length);
+			const processos = form.querySelectorAll<HTMLTableRowElement>(
+				'.infraTable > tbody > tr[class^=infraTr]'
+			);
+			$$<HTMLTableRowElement>('tr[class^=infraTr]', docsGedpro).forEach((row, r) => {
+				const doc = Doc.fromRow(row);
+				const newCell = processos[r].insertCell(processos[r].cells.length);
 				newCell.appendChild(doc.link);
 				row.parentNode.removeChild(row);
 			});
 			window.wrappedJSObject.analisarDocs();
 		}
 	},
-	processo_evento_paginacao_listar: function() {
+	processo_evento_paginacao_listar() {
 		this.processo_selecionar();
 	},
-	processo_seleciona_publica: function() {
+	processo_seleciona_publica() {
 		this.processo_selecionar();
 	},
-	processo_selecionar: function() {
+	processo_selecionar() {
 		Gedpro.getLinkElement(function() {
-			var linkCargaDocs;
-			var div = document.createElement('div');
+			let linkCargaDocs;
+			const div = document.createElement('div');
 			div.id = 'cargaDocsGedpro';
-			linkCargaDocs = new VirtualLink('Carregar documentos do GEDPRO', Gedpro.getDocs);
+			linkCargaDocs = VirtualLink('Carregar documentos do GEDPRO', Gedpro.getDocs);
 			linkCargaDocs.id = 'linkCargaDocs';
 			if ($$('a.infraButton').length) {
 				linkCargaDocs.className = 'infraButton';
 			} else {
 				linkCargaDocs.className = 'extraLinkAcao';
 			}
-			var transformed = false;
+			let transformed = false;
 			linkCargaDocs.transform = function() {
 				if (transformed) {
 					return;
@@ -1314,29 +1309,12 @@ var Eproc = {
 				this.addEventListener('click', Gedpro.getNewLogin, false);
 			};
 			div.appendChild(linkCargaDocs);
-			var fldMinutas = $('#fldMinutas');
+			const fldMinutas = $('#fldMinutas');
 			fldMinutas.parentNode.insertBefore(document.createElement('br'), fldMinutas.nextSibling);
 			fldMinutas.parentNode.insertBefore(div, fldMinutas.nextSibling.nextSibling);
 		});
-		var iconTrueColor = {};
-		iconTrueColor['DOC'] = 'imagens/tree_icons/page_word.gif';
-		iconTrueColor['RTF'] = 'imagens/tree_icons/page_word.gif';
-		iconTrueColor['XLS'] = 'imagens/tree_icons/page_excel.gif';
-		iconTrueColor['TXT'] = 'imagens/tree_icons/page_white.gif';
-		iconTrueColor['PDF'] = 'imagens/tree_icons/page_white_acrobat.gif';
-		iconTrueColor['GIF'] = 'imagens/tree_icons/page_white_picture.gif';
-		iconTrueColor['JPEG'] = 'imagens/tree_icons/page_white_picture.gif';
-		iconTrueColor['JPG'] = 'imagens/tree_icons/page_white_picture.gif';
-		iconTrueColor['PNG'] = 'imagens/tree_icons/page_white_picture.gif';
-		iconTrueColor['HTM'] = 'imagens/tree_icons/page_world.gif';
-		iconTrueColor['HTML'] = 'imagens/tree_icons/page_world.gif';
-		iconTrueColor['MP3'] = 'infra_css/imagens/audio.gif';
-		iconTrueColor['MPG'] = 'infra_css/imagens/video.gif';
-		iconTrueColor['MPEG'] = 'infra_css/imagens/video.gif';
-		iconTrueColor['WMV'] = 'infra_css/imagens/video.gif';
-		iconTrueColor['N/A'] = 'imagens/tree_icons/page_white_error.gif';
 
-		$$('.infraTable').forEach(function(table) {
+		$$<HTMLTableElement>('.infraTable').forEach(table => {
 			if (
 				table.getAttribute('summary') == 'Eventos' ||
 				table.rows[0].cells[0].textContent == 'Evento'
@@ -1345,10 +1323,10 @@ var Eproc = {
 			}
 		});
 
-		function applyTableModifications(table) {
+		function applyTableModifications(table: HTMLTableElement) {
 			if (!table.tHead) {
 				table.createTHead();
-				var firstRow = table.rows[0];
+				const firstRow = table.rows[0];
 				if (firstRow.cells[0].tagName == 'TH') {
 					table.tHead.appendChild(firstRow);
 				}
@@ -1356,18 +1334,18 @@ var Eproc = {
 			$$('th', table).forEach(function(th) {
 				th.removeAttribute('width');
 			});
-			var eventosReferidos = {};
+			const eventosReferidos: { [key: string]: HTMLTableRowElement[] } = {};
 			table.addEventListener(
 				'click',
-				function(e) {
-					var docLink = e.target;
+				e => {
+					const docLink = e.target as HTMLAnchorElement;
 					if (docLink.hasAttribute('data-doc')) {
-						var lastClicked = $('#lastClicked');
+						const lastClicked = $('#lastClicked');
 						if (lastClicked) {
 							lastClicked.removeAttribute('id');
 						}
 						docLink.id = 'lastClicked';
-						var menuFechar = $('#extraFechar');
+						const menuFechar = $<HTMLLIElement>('#extraFechar');
 						if (menuFechar) {
 							menuFechar.style.visibility = 'visible';
 						}
@@ -1375,18 +1353,18 @@ var Eproc = {
 				},
 				false
 			);
-			$$('tr[class^="infraTr"], tr[bgcolor="#FFFACD"]', table).forEach(function(tr) {
-				var colunaDescricao = tr.cells[tr.cells.length - 3];
-				var texto = colunaDescricao.textContent;
-				var numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent)[0];
+			$$<HTMLTableRowElement>('tr[class^="infraTr"], tr[bgcolor="#FFFACD"]', table).forEach(tr => {
+				const colunaDescricao = tr.cells[tr.cells.length - 3];
+				const texto = colunaDescricao.textContent;
+				const numeroEvento = /^\d+/.exec(tr.cells[tr.cells.length - 5].textContent)[0];
 				if (/Refer\. ao Evento: \d+$/.test(texto)) {
-					var eventoReferido = /\d+$/.exec(texto)[0];
+					const eventoReferido = /\d+$/.exec(texto)[0];
 					if (!(eventoReferido in eventosReferidos)) {
 						eventosReferidos[eventoReferido] = [];
 					}
 					eventosReferidos[eventoReferido].push(tr);
 				} else if (numeroEvento in eventosReferidos) {
-					var parte = $('.infraEventoPrazoParte', tr);
+					const parte = $('.infraEventoPrazoParte', tr);
 					if (parte) {
 						eventosReferidos[numeroEvento].forEach(function(linha) {
 							linha.cells[linha.cells.length - 3].innerHTML += `<br>${
@@ -1398,33 +1376,35 @@ var Eproc = {
 			});
 			table.classList.add('extraTabelaEventos');
 		}
-		var menu = Eproc.getMenu();
+		const menu = Eproc.getMenu();
 		if (menu) {
-			var fechar = document.createElement('li');
+			const fechar = document.createElement('li');
 			fechar.id = 'extraFechar';
 			fechar.style.visibility = 'hidden';
-			var fecharLink = new VirtualLink('Fechar as janelas abertas', Eproc.closeAllWindows);
+			const fecharLink = VirtualLink('Fechar as janelas abertas', Eproc.closeAllWindows);
 			fechar.appendChild(fecharLink);
 			menu.appendChild(fechar);
-			var fecharFixado = false,
-				fecharAltura,
-				fecharY,
-				posicaoIdeal,
-				paginaY;
-			var afixar = function() {
+			let fecharFixado = false;
+			let fecharAltura;
+			let fecharY: number;
+			let posicaoIdeal: number;
+			let paginaY: number;
+			const afixar = function() {
 				fechar.style.position = 'fixed';
 				fechar.style.top = `${posicaoIdeal}px`;
 				fechar.style.width = `${menu.clientWidth}px`;
 				fecharFixado = true;
 			};
-			var desafixar = function() {
+			const desafixar = function() {
 				fechar.style.position = '';
 				fechar.style.top = '';
 				fechar.style.width = '';
 				fecharFixado = false;
 			};
-			var debounce = function(callback, ms) {
-				var timer, context, args;
+			const debounce = function(callback: Function, ms: number) {
+				let timer: number;
+				let context: any;
+				let args: IArguments;
 				return function() {
 					window.clearTimeout(timer);
 					context = this;
@@ -1434,14 +1414,14 @@ var Eproc = {
 					}, ms);
 				};
 			};
-			var throttle = function(callback) {
-				var atualizando = false,
-					context,
-					args;
-				var atualizar = function() {
+			const throttle = function(callback: Function) {
+				let atualizando = false;
+				let context: any;
+				let args: IArguments;
+				function atualizar() {
 					callback.apply(context, args);
 					atualizando = false;
-				};
+				}
 				return function() {
 					if (!atualizando) {
 						context = this;
@@ -1451,7 +1431,7 @@ var Eproc = {
 					}
 				};
 			};
-			var atualizar = throttle(function() {
+			const atualizar = throttle(function() {
 				if (fecharY - paginaY < posicaoIdeal) {
 					if (!fecharFixado) {
 						afixar();
@@ -1460,38 +1440,38 @@ var Eproc = {
 					desafixar();
 				}
 			});
-			var onScroll = function() {
+			function onScroll() {
 				paginaY = window.pageYOffset;
 				atualizar();
-			};
+			}
 			window.addEventListener('scroll', onScroll, false);
-			var calcularDimensoes = function() {
+			function calcularDimensoes() {
 				desafixar();
 				fecharAltura = fechar.clientHeight;
 				fecharY = fechar.offsetTop;
 				posicaoIdeal = (window.innerHeight - fecharAltura) / 2;
 				onScroll();
-			};
-			var onResize = debounce(calcularDimensoes, 50);
+			}
+			const onResize = debounce(calcularDimensoes, 50);
 			window.addEventListener('resize', onResize, false);
 			$('#lnkInfraMenuSistema').addEventListener('click', onResize, false);
-			var inicializar = debounce(calcularDimensoes, 300);
+			const inicializar = debounce(calcularDimensoes, 300);
 			inicializar();
 		}
 	},
-	isSegundoGrau: function() {
+	isSegundoGrau() {
 		return this.getEstado() === null;
 	},
-	getEstado: function() {
-		var linkSecao = $('#divInfraBarraTribunalE a');
-		var estado = (linkSecao ? linkSecao.hostname : window.location.hostname).match(
+	getEstado() {
+		const linkSecao = $<HTMLAnchorElement>('#divInfraBarraTribunalE a');
+		const estado = (linkSecao ? linkSecao.hostname : window.location.hostname).match(
 			/\.jf(pr|rs|sc)\.(?:gov|jus)\.br/
 		);
 		if (estado) return estado[1];
 		return null;
 	},
-	getNumprocF: function(numproc) {
-		var numprocF = '';
+	getNumprocF(numproc: string) {
+		let numprocF = '';
 		for (let i = 0, len = numproc.length; i < len; i++) {
 			let d = numproc.substr(i, 1);
 			if (i == 7) numprocF += '-';
@@ -1500,48 +1480,27 @@ var Eproc = {
 		}
 		return numprocF;
 	},
-	prefUsuario: function(num) {
-		var storage = window.localStorage;
+	prefUsuario(num: number) {
+		const storage = window.localStorage;
 		if (`ch${num}` in storage) {
-			return storage[`ch${num}`];
+			return storage.getItem(`ch${num}`);
 		}
 		return null;
 	},
 	usuario_personalizacao_configuracao: async function() {
-		var corCapa = $('#ch1');
-		if (corCapa) {
-			document.body.addEventListener(
-				'keydown',
-				function(e) {
-					if (e.shiftKey && e.ctrlKey) {
-						corCapa.name = '2';
-					}
-				},
-				false
-			);
-			document.body.addEventListener(
-				'keyup',
-				function() {
-					if (corCapa.name != '1') {
-						corCapa.name = '1';
-					}
-				},
-				false
-			);
-		}
-		var storage = window.localStorage;
+		const storage = window.localStorage;
 		$$('input[type=checkbox][id^="ch"]').forEach(function(input) {
 			input.addEventListener(
 				'click',
 				function() {
-					storage[`ch${this.name}`] = this.checked ? 'S' : 'N';
+					storage.setItem(`ch${this.name}`, this.checked ? 'S' : 'N');
 				},
 				false
 			);
 		});
 
-		var botao = $('#lnkConfiguracaoSistema');
-		var novasConfiguracoesMostradas =
+		const botao = $<HTMLAnchorElement>('#lnkConfiguracaoSistema');
+		let novasConfiguracoesMostradas =
 			(await browser.storage.local.get()).novasconfiguracoes4mostradas || true;
 		if (botao && !novasConfiguracoesMostradas) {
 			window.alert(
@@ -1549,7 +1508,7 @@ var Eproc = {
 			);
 			novasConfiguracoesMostradas = true;
 			browser.storage.local.set({ novasconfiguracoes4mostradas: true });
-			var tooltip = new Tooltip(
+			const tooltip = new Tooltip(
 				'Este ícone permite acessar novamente as configurações a qualquer momento.'
 			);
 			tooltip.vincular(botao);
@@ -1558,7 +1517,7 @@ var Eproc = {
 		}
 	},
 };
-function analisarVersao(FeP) {
+function analisarVersao(FeP: FerramentasEProc) {
 	const numeroVersaoCompativel = FeP.numeroVersaoCompativel.split('.').map(Number);
 	const numeroVersaoInstalada = browser.runtime
 		.getManifest()
@@ -1574,102 +1533,107 @@ function analisarVersao(FeP) {
 		(acc, x, i) => acc.concat(Ordering.compare(x, numeroVersaoCompativel[i])),
 		Ordering.empty()
 	).value;
-	window.wrappedJSObject.FeP.versaoUsuarioCompativel = comparacao !== Ordering.LT;
+	window.wrappedJSObject.FeP.versaoUsuarioCompativel = comparacao !== OrderingTag.LT;
+}
+
+enum OrderingTag {
+	LT = -1,
+	EQ = 0,
+	GT = +1,
 }
 
 class Ordering {
-	value: any;
-	static get LT() {
-		return -1;
-	}
-	static get EQ() {
-		return 0;
-	}
-	static get GT() {
-		return +1;
-	}
+	constructor(readonly value: OrderingTag) {}
 
-	constructor(value) {
-		this.value = value;
-	}
-
-	concat(that) {
-		return this.value === Ordering.EQ ? that : this;
+	concat(that: Ordering) {
+		return this.value === OrderingTag.EQ ? that : this;
 	}
 
 	static empty() {
-		return new Ordering(Ordering.EQ);
+		return new Ordering(OrderingTag.EQ);
 	}
-	static compare(a, b) {
-		return new Ordering(a < b ? Ordering.LT : a > b ? Ordering.GT : Ordering.EQ);
+	static compare(a: any, b: any) {
+		return new Ordering(a < b ? OrderingTag.LT : a > b ? OrderingTag.GT : OrderingTag.EQ);
 	}
 }
 
-function Tooltip(texto) {
-	var adicionarElementos;
-	var div = document.createElement('div');
-	div.innerHTML = '<img src="imagens/tooltip/arrow3.gif" style="position: absolute;"/>';
-	var img = div.firstChild;
-	div.innerHTML = `<div style="position: absolute; background: lightyellow; border: 1px solid black; font-size: 1.2em; width: 30ex; text-align: center; padding: 10px;">${texto}</div>`;
-	div = div.firstChild;
-	var elementoVinculado,
-		x = 0,
-		y = 0;
-	this.vincular = function(elemento) {
-		elementoVinculado = elemento;
-		this.desenhar();
-	};
-	this.desenhar = function() {
-		removerElementos();
-		calcularXY(elementoVinculado);
-		adicionarElementos();
-		posicionarElementos();
-	};
-	this.ocultar = function() {
-		removerElementos();
-		adicionarElementos = function() {};
-	};
+class Tooltip {
+	desenhar: () => void;
+	vincular: (elemento: HTMLElement) => void;
+	ocultar: () => void;
+	constructor(texto: string) {
+		let adicionarElementos: () => void;
+		let div = document.createElement('div');
+		div.innerHTML = '<img src="imagens/tooltip/arrow3.gif" style="position: absolute;"/>';
+		const img = div.firstChild as HTMLImageElement;
+		div.innerHTML = `<div style="position: absolute; background: lightyellow; border: 1px solid black; font-size: 1.2em; width: 30ex; text-align: center; padding: 10px;">${texto}</div>`;
+		div = div.firstChild as HTMLDivElement;
+		let elementoVinculado: HTMLElement;
+		let x = 0;
+		let y = 0;
+		this.vincular = function(elemento: HTMLElement) {
+			elementoVinculado = elemento;
+			this.desenhar();
+		};
+		this.desenhar = function() {
+			removerElementos();
+			calcularXY(elementoVinculado);
+			adicionarElementos();
+			posicionarElementos();
+		};
+		this.ocultar = function() {
+			removerElementos();
+			adicionarElementos = function() {};
+		};
 
-	function calcularXY(elemento) {
-		for (x = 0, y = 0; elemento !== null; elemento = elemento.offsetParent) {
-			x += elemento.offsetLeft;
-			y += elemento.offsetTop;
+		function calcularXY(elemento: HTMLElement) {
+			for (x = 0, y = 0; elemento !== null; elemento = elemento.offsetParent as HTMLElement) {
+				x += elemento.offsetLeft;
+				y += elemento.offsetTop;
+			}
 		}
-	}
 
-	function posicionarElementos() {
-		img.style.top = `${y + elementoVinculado.offsetHeight}px`;
-		img.style.left = `${x + elementoVinculado.offsetWidth / 2 - 15}px`;
-		div.style.top = `${y + elementoVinculado.offsetHeight + 15 - 1}px`;
-		div.style.left = `${x + elementoVinculado.offsetWidth / 2 - div.offsetWidth + 10}px`;
-	}
-
-	function removerElementos() {
-		if (div.parentNode == document.body) {
-			document.body.removeChild(div);
-			document.body.removeChild(img);
+		function posicionarElementos() {
+			img.style.top = `${y + elementoVinculado.offsetHeight}px`;
+			img.style.left = `${x + elementoVinculado.offsetWidth / 2 - 15}px`;
+			div.style.top = `${y + elementoVinculado.offsetHeight + 15 - 1}px`;
+			div.style.left = `${x + elementoVinculado.offsetWidth / 2 - div.offsetWidth + 10}px`;
 		}
-	}
 
-	adicionarElementos = function() {
-		document.body.appendChild(div);
-		document.body.appendChild(img);
-	};
+		function removerElementos() {
+			if (div.parentNode == document.body) {
+				document.body.removeChild(div);
+				document.body.removeChild(img);
+			}
+		}
+
+		adicionarElementos = function() {
+			document.body.appendChild(div);
+			document.body.appendChild(img);
+		};
+	}
 }
 
-function VirtualLink(texto, funcao) {
-	var vLink = document.createElement('a');
+interface VLink extends HTMLAnchorElement {
+	removeTrigger(): void;
+	transform():void
+}
+function VirtualLink(texto: string, funcao: Function): VLink {
+	const vLink = document.createElement('a');
 	vLink.href = '#';
 	vLink.innerHTML = texto;
-	var fn = function(e) {
+	const fn = function(e: Event) {
 		e.preventDefault();
 		e.stopPropagation();
 		funcao.call(this);
 	};
 	vLink.addEventListener('click', fn, false);
-	vLink.removeTrigger = function() {
-		this.removeEventListener('click', fn, false);
-	};
-	return vLink;
+	return Object.assign(vLink, {
+		removeTrigger() {
+			vLink.removeEventListener('click', fn, false);
+		},
+		transform(){}
+	});
 }
+
 Eproc.init();

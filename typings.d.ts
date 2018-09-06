@@ -3,11 +3,13 @@ interface Window {
 }
 
 interface UnsafeWindow extends Window {
-	FeP: {
-		complementoInstalado: boolean;
-		numeroVersaoCompativel: string;
-		versaoUsuarioCompativel: boolean;
-	};
+	FeP: FerramentasEProc;
 	analisarDocs(): void;
 	documentosAbertos: { [key: string]: Window };
+}
+
+interface FerramentasEProc {
+	complementoInstalado: boolean;
+	numeroVersaoCompativel: string;
+	versaoUsuarioCompativel: boolean;
 }
