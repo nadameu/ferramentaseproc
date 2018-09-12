@@ -4,7 +4,8 @@
 	"description": "Complemento para o Firefox \"Ferramentas e-Proc\"",
 	"main": "background.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"web-ext": "web-ext"
 	},
 	"repository": {
 		"type": "git",
@@ -18,8 +19,9 @@
 	},
 	"homepage": "https://github.com/nadameu/ferramentaseproc#readme",
 	"devDependencies": {
-		"@types/firefox-webext-browser": "^58.0.3",
+		"@types/firefox-webext-browser": "^58.0.4",
 		"prettier": "^1.14.2",
-		"typescript": "^3.0.3"
+		"typescript": "^3.0.3",
+		"web-ext": "^2.9.1"
 	}
 }
