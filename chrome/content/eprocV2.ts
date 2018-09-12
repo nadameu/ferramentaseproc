@@ -46,14 +46,6 @@ class CheckBox {
 }
 
 const Gedpro = (() => {
-	let linkElement: HTMLAnchorElement;
-	let link: string | null;
-	let grupos: string;
-	let docsUrl: string;
-	let host: string;
-	const statuses: string[] = [];
-	let buscando = false;
-
 	interface Visitor {
 		visit(node: GedproNode): void;
 		visitDoc(doc: GedproDoc): void;
@@ -116,7 +108,7 @@ const Gedpro = (() => {
 		toImg() {
 			const img = document.createElement('img');
 			img.className = 'extraGedproImg';
-			img.src = `http://${host}/images/${this.arquivo}.gif`;
+			img.src = `http://${Gedpro.host}/images/${this.arquivo}.gif`;
 			return img;
 		}
 	}
@@ -156,16 +148,16 @@ const Gedpro = (() => {
 	}
 
 	class GedproDoc extends GedproNode {
-		maiorAcesso: any;
-		codigo: any;
-		status: any;
+		maiorAcesso: number;
+		codigo: string;
+		status: string;
 		statusIcone: GedproIcone;
-		data: any;
-		criador: any;
-		dataCriacao: any;
-		versao: any;
-		editor: any;
-		dataVersao: any;
+		data: string;
+		criador: string;
+		dataCriacao: string;
+		versao: string;
+		editor: string;
+		dataVersao: string;
 		static STATUSES = new Map([
 			['0', 'Em edição'],
 			['1', 'Bloqueado'],
@@ -182,7 +174,7 @@ const Gedpro = (() => {
 		constructor(reg: Element) {
 			super(reg);
 			this.rotulo = reg.getAttribute('nomeTipoDocumentoExibicao');
-			this.maiorAcesso = reg.getAttribute('MaiorAcesso');
+			this.maiorAcesso = Number(reg.getAttribute('MaiorAcesso'));
 			this.codigo = reg.getAttribute('codigoDocumento');
 			const statusDocumento = reg.getAttribute('statusDocumento');
 			this.status = GedproDoc.STATUSES.get(statusDocumento);
@@ -339,9 +331,7 @@ const Gedpro = (() => {
 					link.textContent = String(texto);
 					link.addEventListener(
 						'click',
-						function() {
-							return Gedpro.getDocs(pagina);
-						},
+						() => Gedpro.getDocs(pagina).catch(err => console.error(err)),
 						false
 					);
 					cell.appendChild(link);
@@ -393,7 +383,9 @@ const Gedpro = (() => {
 							window.wrappedJSObject.documentosAbertos[
 								`${Eproc.processo}${node.codigo}`
 							] = window.open(
-								`http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
+								`http://${
+									Gedpro.host
+								}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
 									node.codigo
 								}`,
 								`${Eproc.processo}${node.codigo}`,
@@ -415,210 +407,274 @@ const Gedpro = (() => {
 			},
 		};
 	})();
-	return {
-		error(msg: string) {
-			window.alert(msg);
-			buscando = false;
-		},
-		getDocs(pagina?: number) {
-			if (buscando) {
-				window.alert('A solicitação já foi enviada. Por favor aguarde.');
+
+	type State = {
+		buscando: boolean;
+		pagina?: number;
+		linkCargaDocs?: VLink;
+		linkElement?: HTMLAnchorElement;
+		host?: string;
+		link?: string;
+		loginForm?: string;
+		loginPossivel?: true;
+		novoLogin: boolean;
+		grupos?: string;
+		docsUrl?: string;
+		xml?: XMLDocument;
+	};
+	function createAction<A extends string>(type: A): () => { type: A };
+	function createAction<A extends string, P>(type: A): (payload: P) => { type: A; payload: P };
+	function createAction(type: string) {
+		return function createAction2(payload?: any) {
+			return payload === undefined ? { type } : { type, payload };
+		};
+	}
+	const Actions = {
+		buscar: createAction<'BUSCAR', number>('BUSCAR'),
+		docsUrlObtido: createAction<'DOCS_URL_OBTIDO', string>('DOCS_URL_OBTIDO'),
+		documentosObtidos: createAction<'DOCUMENTOS_OBTIDOS', XMLDocument>('DOCUMENTOS_OBTIDOS'),
+		erro: createAction<'ERRO', string>('ERRO'),
+		elementoLinkObtido: createAction<'ELEMENTO_LINK_OBTIDO', HTMLAnchorElement>(
+			'ELEMENTO_LINK_OBTIDO'
+		),
+		gruposObtidos: createAction<'GRUPOS_OBTIDOS', string>('GRUPOS_OBTIDOS'),
+		linkCargaDocsObtido: createAction<'LINK_CARGA_DOCS_OBTIDO', VLink>('LINK_CARGA_DOCS_OBTIDO'),
+		linkObtido: createAction<'LINK_OBTIDO', string>('LINK_OBTIDO'),
+		loginFormObtido: createAction<'FORMULARIO_LOGIN_OBTIDO', string>('FORMULARIO_LOGIN_OBTIDO'),
+		loginOk: createAction('LOGIN_OK'),
+		loginPossivel: createAction('LOGIN_POSSIVEL'),
+		novoLogin: createAction('NOVO_LOGIN'),
+	};
+	type Action = {
+		[k in keyof typeof Actions]: ReturnType<typeof Actions[k]>
+	}[keyof typeof Actions];
+
+	let state: State = { buscando: false, novoLogin: false };
+
+	function reducer(state: State, action: Action): State {
+		switch (action.type) {
+			case 'BUSCAR':
+				return { ...state, buscando: true, pagina: action.payload };
+			case 'DOCUMENTOS_OBTIDOS':
+				return { ...state, xml: action.payload };
+			case 'DOCS_URL_OBTIDO':
+				return { ...state, docsUrl: action.payload };
+			case 'ELEMENTO_LINK_OBTIDO':
+				return { ...state, linkElement: action.payload };
+			case 'ERRO':
+				console.error(action.payload);
+				alert(action.payload);
+				return { buscando: false, novoLogin: false };
+			case 'FORMULARIO_LOGIN_OBTIDO':
+				return { ...state, loginForm: action.payload };
+			case 'GRUPOS_OBTIDOS':
+				return { ...state, grupos: action.payload };
+			case 'LINK_CARGA_DOCS_OBTIDO':
+				return { ...state, linkCargaDocs: action.payload };
+			case 'LINK_OBTIDO':
+				return { ...state, link: action.payload, host: new URL(action.payload).host };
+			case 'LOGIN_OK':
+				return { ...state, novoLogin: false };
+			case 'LOGIN_POSSIVEL':
+				return { ...state, loginPossivel: true };
+			case 'NOVO_LOGIN':
+				return { ...state, novoLogin: true };
+			default:
+				return state;
+		}
+	}
+	let dispatching = false;
+	let actions: Action[] = [];
+	function dispatch(action: Action): void {
+		actions.push(action);
+		if (dispatching) return;
+		dispatching = true;
+		while (actions.length > 0) {
+			const action = actions.shift();
+			console.log('State', state, 'Action', action);
+			state = reducer(state, action);
+		}
+		actions = [];
+		dispatching = false;
+		subscribers.forEach(s => s());
+	}
+	let subscribers: (() => void)[] = [];
+	function subscribe(subscriber: () => void): () => void {
+		subscribers.push(subscriber);
+		return () => {
+			subscribers = subscribers.filter(s => s !== subscriber);
+		};
+	}
+	function updateStatus(status: string) {
+		console.log('STATUS UPDATE', status);
+		state.linkCargaDocs.textContent = status;
+	}
+	function handler(): void {
+		if (state.buscando) {
+			if (!state.linkCargaDocs) {
+				const linkCargaDocs = $$<VLink>('#linkCargaDocs');
+				if (linkCargaDocs.length < 1)
+					return dispatch(
+						Actions.erro('Não foi possível obter o botão de carregamento do Gedpro.')
+					);
+				dispatch(Actions.linkCargaDocsObtido(linkCargaDocs[0]));
+			}
+			if (!state.linkElement) {
+				updateStatus('Obtendo link do GEDPRO...');
+				return Gedpro.getLinkElement();
+			}
+			if (!state.link || !state.host) {
+				updateStatus('Obtendo endereço do GEDPRO...');
+				return Gedpro.getLink(state.linkElement);
+			}
+			if (!state.loginForm) {
+				updateStatus('Obtendo link de requisição de login...');
+				return Gedpro.getLoginForm(state.host, state.link);
+			}
+			if (!state.loginPossivel) {
+				updateStatus('Verificando possibilidade de login...');
+				return Gedpro.getLogin(state.loginForm);
+			}
+			if (state.novoLogin) {
+				alert('Feche o documento e tente novamente agora.');
+				return dispatch(Actions.loginOk());
+			}
+			if (!state.grupos) {
+				updateStatus('Obtendo grupos do usuário...');
+				return Gedpro.getGrupos(state.host);
+			}
+			if (!state.docsUrl) {
+				updateStatus('Obtendo endereço dos documentos...');
+				return Gedpro.getDocsUrl(state.host, state.grupos);
+			}
+			if (!state.xml) {
+				updateStatus(`Carregando página ${state.pagina} da árvore de documentos...`);
+				return Gedpro.getXml(state.docsUrl, state.pagina);
+			}
+		}
+	}
+	subscribe(handler);
+	class GedproStatic {
+		async getDocs(pagina: number = 1) {
+			dispatch(Actions.buscar(pagina));
+			return;
+
+			if (state.buscando) {
+				dispatch(Actions.exibirAviso('A solicitação já foi enviada. Por favor aguarde.'));
 				return;
 			}
-			buscando = true;
-			pagina = typeof pagina == 'number' ? pagina : 1;
-			Gedpro.getXml(pagina, (xml: XMLDocument) => {
-				const nodes = new GedproNodes(xml);
-				GedproTabela.visit(nodes);
-				const pai = $('#cargaDocsGedpro');
-				const linkCargaDocs = $<VLink>('#linkCargaDocs');
-				linkCargaDocs.transform();
-				const table = GedproTabela.getTable();
-				pai.insertBefore(table, linkCargaDocs);
-				buscando = false;
-			});
-		},
-		getDocsUrl(callback: (_: string) => void) {
-			if (docsUrl) {
-				return callback(docsUrl);
-			}
-			Gedpro.getGrupos((grupos: string) => {
-				docsUrl = `http://${host}/XMLInterface.asp?processo=${
-					Eproc.processo
-				}&ProcessoVisual=PV&grupos=${grupos}`;
-				Gedpro.getDocsUrl(callback);
-			});
-		},
-		getGrupos(callback: (_: string) => void) {
-			if (grupos) {
-				return callback(grupos);
-			}
-			function setPublicGroups() {
-				grupos = '11,28,82';
-				Gedpro.getGrupos(callback);
-			}
-			function onerror() {
-				Gedpro.warn(
-					'Não foi possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.'
-				);
-				return setPublicGroups();
-			}
-			Gedpro.getLogin(
-				() => {
-					Gedpro.pushStatus('Obtendo grupos do usuário...');
-					fetch(
-						`http://${host}/arvore2.asp?modulo=Textos do Processo&processo=${
-							Eproc.processo
-						}&numeroProcessoVisual=NPV&localizadorProcesso=LP`
-					)
-						.then(data => data.text())
-						.then(text => {
-							Gedpro.popStatus();
-							try {
-								[, grupos] = text.match(/&grupos=([^&]+)&/);
-							} catch (e) {
-								console.error(text);
-								return onerror();
-							}
-							Gedpro.getGrupos(callback);
-						})
-						.catch(onerror);
-				},
-				() => {
-					Gedpro.warn(
-						'Não é possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.'
-					);
-					return setPublicGroups();
-				}
+			dispatch(Actions.buscar(pagina));
+			const xml = await Gedpro.getXml(pagina);
+			const nodes = new GedproNodes(xml);
+			GedproTabela.visit(nodes);
+			const pai = $('#cargaDocsGedpro');
+			const linkCargaDocs = $<VLink>('#linkCargaDocs');
+			linkCargaDocs.transform();
+			const table = GedproTabela.getTable();
+			pai.insertBefore(table, linkCargaDocs);
+			dispatch(Actions.parar());
+		}
+		getDocsUrl(host: string, grupos: string) {
+			dispatch(
+				Actions.docsUrlObtido(
+					`http://${host}/XMLInterface.asp?processo=${
+						Eproc.processo
+					}&ProcessoVisual=PV&grupos=${grupos}`
+				)
 			);
-		},
-		getLink: function(callback: (_: string) => void) {
-			if (link) {
-				return callback(link);
-			}
-			Gedpro.getLinkElement(linkElement => {
-				const urlGetter = linkElement.href;
-				const xhr = new XMLHttpRequest();
-				xhr.open('HEAD', urlGetter);
-				xhr.setRequestHeader('X-Ferramentas-e-Proc', '1');
-				xhr.onreadystatechange = function() {
-					if (this.readyState == 4) {
-						Gedpro.popStatus();
-						if (
-							this.status == 200 &&
-							(link = this.getResponseHeader('X-Ferramentas-e-Proc-Redirect'))
-						) {
-							const a = document.createElement('a');
-							a.href = link;
-							host = a.host;
-							Gedpro.getLink(callback);
-						} else {
-							Gedpro.error('Não foi possível obter o endereço do GEDPRO.');
-						}
+		}
+		getGrupos(host: string): void {
+			fetch(
+				`http://${host}/arvore2.asp?modulo=Textos do Processo&processo=${
+					Eproc.processo
+				}&numeroProcessoVisual=NPV&localizadorProcesso=LP`,
+				{ credentials: 'include' }
+			)
+				.then(response => response.text())
+				.then(text => {
+					const match = text.match(/&grupos=([^&]+)&/);
+					if (!match) {
+						dispatch(
+							Actions.erro(
+								'Não foi possível obter os grupos do usuário.\nEstarão acessíveis apenas os documentos com visibilidade pública.'
+							)
+						);
+						dispatch(Actions.gruposObtidos('11,28,82'));
 					}
-				};
-				Gedpro.pushStatus('Obtendo endereço do GEDPRO...');
-				xhr.send();
-			});
-		},
-		getLinkElement: function(callback: (_: HTMLAnchorElement) => void) {
-			if (linkElement) {
-				return callback(linkElement);
-			}
+					dispatch(Actions.gruposObtidos(match[1]));
+				});
+		}
+		getLink(linkElement: HTMLAnchorElement): void {
+			fetch(linkElement.href, {
+				credentials: 'include',
+				method: 'HEAD',
+				headers: new Headers({ 'X-Ferramentas-e-Proc': '1' }),
+			}).then(response =>
+				dispatch(Actions.linkObtido(response.headers.get('X-Ferramentas-e-Proc-Redirect')))
+			);
+		}
+		getLinkElement(): void {
 			const links = $$<HTMLAnchorElement>(
 				'a[href^="controlador.php?acao=acessar_processo_gedpro&"]'
 			);
 			if (links.length == 1) {
-				linkElement = links[0];
-				Gedpro.getLinkElement(callback);
+				dispatch(Actions.elementoLinkObtido(links[0]));
+			} else {
+				dispatch(Actions.erro('Link do Gedpro não encontrado.'));
 			}
-		},
-		getLoginForm: function(callback: (_: string) => void) {
-			const getLinkCallback = (link: string) => {
-				Gedpro.pushStatus('Obtendo link de requisição de login...');
-				fetch(link)
-					.then(data => data.text())
-					.then(text => {
-						const formLogin = /FormLogin\.asp\?[^"]+/.exec(text);
-						const mainframePage = /\/mainframe\.asp\?[^"]+/.exec(text);
-						if (formLogin) {
-							const loginForm = `http://${host}/${formLogin}`;
-							return callback(loginForm);
-						} else if (mainframePage) {
-							const mainframe = `http://${host}${mainframePage}`;
-							getLinkCallback(mainframe);
-						} else {
-							Gedpro.error('Não foi possível obter o link de requisição de login.');
-						}
-					});
-			};
-			Gedpro.getLink(getLinkCallback);
-		},
+		}
+		getLoginForm(host: string, link: string): void {
+			fetch(link, { credentials: 'include' })
+				.then(response => response.text())
+				.then(text => {
+					const formLogin = /FormLogin\.asp\?[^"]+/.exec(text);
+					const mainframePage = /\/mainframe\.asp\?[^"]+/.exec(text);
+					if (formLogin) {
+						return dispatch(Actions.loginFormObtido(`http://${host}/${formLogin}`));
+					} else if (mainframePage) {
+						return this.getLoginForm(host, `http://${host}${mainframePage}`);
+					} else {
+						dispatch(Actions.erro('Não foi possível obter o link de requisição de login.'));
+					}
+				});
+		}
 		getNewLogin(e: MouseEvent) {
 			e.preventDefault();
 			e.stopPropagation();
-			Gedpro.getLogin(() => {
-				Gedpro.info('Feche o documento e tente novamente agora.');
-			});
-		},
-		getLogin(callback: (_: string) => void, onerror?: () => void) {
-			onerror = onerror || (() => Gedpro.error('Não é possível fazer login no GEDPRO.'));
-			Gedpro.getLoginForm(function(loginForm) {
-				Gedpro.pushStatus('Verificando possibilidade de login...');
-				fetch(loginForm)
-					.then(data => data.text())
-					.then(text => {
-						Gedpro.popStatus();
-						if (/<!-- Erro /.test(text)) {
-							onerror();
-						} else {
-							return callback(loginForm);
-						}
-					});
-			});
-		},
-		getXml: (pagina: number, callback: (_: XMLDocument) => void) => {
-			Gedpro.getDocsUrl(docsUrl => {
-				Gedpro.pushStatus(`Carregando página ${pagina} da árvore de documentos...`);
-				fetch(`${docsUrl}&pgtree=${pagina}`)
-					.then(data => data.text())
-					.then(text => {
-						Gedpro.popStatus();
-						const parser = new DOMParser();
-						const xml = parser.parseFromString(text, 'application/xml');
-						callback(xml);
-					})
-					.catch(() => {
-						Gedpro.error(`Não foi possível carregar a página ${pagina} da árvore de documentos.`);
-					});
-			});
-		},
-		info: function(msg: string) {
-			setTimeout(() => {
-				window.alert(msg);
-			}, 100);
-		},
-		popStatus: function() {
-			const linkCargaDocs = $('#linkCargaDocs');
-			if (linkCargaDocs) {
-				const oldText = linkCargaDocs.textContent;
-				const status = statuses.pop();
-				linkCargaDocs.textContent = status;
-				return oldText;
-			}
-		},
-		pushStatus: function(status: string) {
-			const linkCargaDocs = $('#linkCargaDocs');
-			if (linkCargaDocs) {
-				const oldText = linkCargaDocs.textContent;
-				statuses.push(oldText);
-				linkCargaDocs.textContent = status;
-			}
-		},
-		warn: function(msg: string) {
-			Gedpro.info(msg);
-		},
-	};
+			dispatch(Actions.novoLogin());
+		}
+		getLogin(loginForm: string): void {
+			fetch(loginForm, { credentials: 'include' })
+				.then(response => response.text())
+				.then(text => {
+					if (/<!-- Erro /.test(text)) {
+						dispatch(Actions.erro('Não é possível fazer login no GEDPRO.'));
+					} else {
+						dispatch(Actions.loginPossivel());
+					}
+				});
+		}
+		getXml(docsUrl: string, pagina: number): void {
+			fetch(`${docsUrl}&pgtree=${pagina}`, { credentials: 'include' })
+				.then(response => response.blob())
+				.then(
+					blob =>
+						new Promise<string>(resolve => {
+							const reader = new FileReader();
+							reader.addEventListener('loadend', () => resolve(reader.result as string), {
+								once: true,
+							});
+							reader.readAsText(blob);
+						})
+				)
+				.then(text => {
+					const parser = new DOMParser();
+					const xml = parser.parseFromString(text, 'application/xml');
+					dispatch(Actions.documentosObtidos(xml));
+				});
+		}
+	}
+	return new GedproStatic();
 })();
 var Eproc = {
 	acao: '',
@@ -1286,33 +1342,37 @@ var Eproc = {
 		this.processo_selecionar();
 	},
 	processo_selecionar() {
-		Gedpro.getLinkElement(function() {
-			let linkCargaDocs;
-			const div = document.createElement('div');
-			div.id = 'cargaDocsGedpro';
-			linkCargaDocs = VirtualLink('Carregar documentos do GEDPRO', Gedpro.getDocs);
-			linkCargaDocs.id = 'linkCargaDocs';
-			if ($$('a.infraButton').length) {
-				linkCargaDocs.className = 'infraButton';
-			} else {
-				linkCargaDocs.className = 'extraLinkAcao';
+		let linkCargaDocs;
+		const div = document.createElement('div');
+		div.id = 'cargaDocsGedpro';
+		linkCargaDocs = VirtualLink('Carregar documentos do GEDPRO', () =>
+			Gedpro.getDocs().catch(err => console.error(err))
+		);
+		linkCargaDocs.id = 'linkCargaDocs';
+		if ($$('a.infraButton').length) {
+			linkCargaDocs.className = 'infraButton';
+		} else {
+			linkCargaDocs.className = 'extraLinkAcao';
+		}
+		let transformed = false;
+		linkCargaDocs.transform = function() {
+			if (transformed) {
+				return;
 			}
-			let transformed = false;
-			linkCargaDocs.transform = function() {
-				if (transformed) {
-					return;
-				}
-				transformed = true;
-				this.removeTrigger();
-				this.classList.remove('extraLinkAcao');
-				this.textContent = 'Falta de permissão de acesso?';
-				this.addEventListener('click', Gedpro.getNewLogin, false);
-			};
-			div.appendChild(linkCargaDocs);
-			const fldMinutas = $('#fldMinutas');
-			fldMinutas.parentNode.insertBefore(document.createElement('br'), fldMinutas.nextSibling);
-			fldMinutas.parentNode.insertBefore(div, fldMinutas.nextSibling.nextSibling);
-		});
+			transformed = true;
+			this.removeTrigger();
+			this.classList.remove('extraLinkAcao');
+			this.textContent = 'Falta de permissão de acesso?';
+			this.addEventListener(
+				'click',
+				(e: MouseEvent) => Gedpro.getNewLogin(e).catch(err => console.error(err)),
+				false
+			);
+		};
+		div.appendChild(linkCargaDocs);
+		const fldMinutas = $('#fldMinutas');
+		fldMinutas.parentNode.insertBefore(document.createElement('br'), fldMinutas.nextSibling);
+		fldMinutas.parentNode.insertBefore(div, fldMinutas.nextSibling.nextSibling);
 
 		$$<HTMLTableElement>('.infraTable').forEach(table => {
 			if (
@@ -1529,12 +1589,33 @@ function analisarVersao(FeP: FerramentasEProc) {
 	while (numeroVersaoInstalada.length < numeroVersaoCompativel.length) {
 		numeroVersaoInstalada.push(0);
 	}
-	const comparacao = numeroVersaoInstalada.reduce(
-		(acc, x, i) => acc.concat(Ordering.compare(x, numeroVersaoCompativel[i])),
-		Ordering.empty()
-	).value;
-	window.wrappedJSObject.FeP.versaoUsuarioCompativel = comparacao !== OrderingTag.LT;
+	const comparacao = numeroVersaoInstalada.foldMap(Ordering, (x, i) =>
+		Ordering.compare(x, numeroVersaoCompativel[i])
+	);
+	window.wrappedJSObject.FeP.versaoUsuarioCompativel = comparacao.value !== OrderingTag.LT;
 }
+
+interface SemigroupTypeRep {
+	empty(): Semigroup;
+}
+interface Semigroup {
+	concat(that: Semigroup): Semigroup;
+}
+
+interface Array<T> {
+	foldMap<ST extends SemigroupTypeRep, S extends ReturnType<ST['empty']>>(
+		S: ST,
+		f: (x: T, i: number) => S
+	): S;
+}
+
+Array.prototype.foldMap = function foldMap<
+	T,
+	ST extends SemigroupTypeRep,
+	S extends ReturnType<ST['empty']>
+>(this: Array<T>, S: ST, f: (x: T, i: number) => S): S {
+	return this.reduce((acc, x, i) => acc.concat(f(x, i)) as S, S.empty() as S);
+};
 
 enum OrderingTag {
 	LT = -1,
@@ -1616,7 +1697,7 @@ class Tooltip {
 
 interface VLink extends HTMLAnchorElement {
 	removeTrigger(): void;
-	transform():void
+	transform(): void;
 }
 function VirtualLink(texto: string, funcao: Function): VLink {
 	const vLink = document.createElement('a');
@@ -1632,7 +1713,7 @@ function VirtualLink(texto: string, funcao: Function): VLink {
 		removeTrigger() {
 			vLink.removeEventListener('click', fn, false);
 		},
-		transform(){}
+		transform() {},
 	});
 }
 
