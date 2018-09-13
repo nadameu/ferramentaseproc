@@ -1,207 +1,235 @@
-a img { border: none; }
-.extraGedproRotuloGreen, .extraGedproRotuloBlue { cursor: pointer; }
-.extraGedproRotuloGreen { color: green; }
-.extraGedproRotuloBlue { color: blue; }
-.extraGedproRotuloGray { color: gray; cursor: inherit; }
-.extraGedproImg { cursor: inherit; vertical-align: middle; }
-.extraGedproPaginacao { text-align: center; }
-.extraGedproPaginacao a { text-decoration: none; }
-.extraGedproPaginaAtual { font-weight: bold; font-size: 1.3em; }
+.noscreen {
+	display: none;
+}
+a img {
+	border: none;
+}
+.extraGedproRotuloGreen,
+.extraGedproRotuloBlue {
+	cursor: pointer;
+}
+.extraGedproRotuloGreen {
+	color: green;
+}
+.extraGedproRotuloBlue {
+	color: blue;
+}
+.extraGedproRotuloGray {
+	color: gray;
+	cursor: inherit;
+}
+.extraGedproImg {
+	cursor: inherit;
+	vertical-align: middle;
+}
+.extraGedproPaginacao {
+	text-align: center;
+}
+.extraGedproPaginacao a {
+	text-decoration: none;
+}
+.extraGedproPaginaAtual {
+	font-weight: bold;
+	font-size: 1.3em;
+}
 button.infraButton.extraBuscarPreventosButton,
 button.infraButton.extraBuscarPreventosButton:hover {
-    font-size: .8em;
+	font-size: 0.8em;
 }
 .extraLembrete {
-    float: left;
-    font-size: 12px;
-    min-width: 25ex;
-    max-width: 50ex;
-    margin-bottom: 0.5em;
-    margin-right: 1ex;
-    padding: 0.5em 1ex;
-    text-align: center;
-    background-color: hsl(60, 100%, 80%);
-    color: hsl(0, 0%, 0%);
+	float: left;
+	font-size: 12px;
+	min-width: 25ex;
+	max-width: 50ex;
+	margin-bottom: 0.5em;
+	margin-right: 1ex;
+	padding: 0.5em 1ex;
+	text-align: center;
+	background-color: hsl(60, 100%, 80%);
+	color: hsl(0, 0%, 0%);
 }
 .extraLembrete[data-cor='verde'] {
-    background-color: hsl(120, 100%, 80%);
+	background-color: hsl(120, 100%, 80%);
 }
 .extraLembrete[data-cor='vermelho'] {
-    background-color: hsl(0, 100%, 80%);
+	background-color: hsl(0, 100%, 80%);
 }
 .extraLembreteVoce {
-    background-color: hsl(60, 100%, 70%);
+	background-color: hsl(60, 100%, 70%);
 }
 .extraLembreteVoce[data-cor='verde'] {
-    background-color: hsl(120, 100%, 70%);
+	background-color: hsl(120, 100%, 70%);
 }
 .extraLembreteVoce[data-cor='vermelho'] {
-    background-color: hsl(0, 100%, 70%);
+	background-color: hsl(0, 100%, 70%);
 }
 .extraLembreteTodos {
-    background-color: hsl(60, 100%, 75%);
+	background-color: hsl(60, 100%, 75%);
 }
 .extraLembreteTodos[data-cor='verde'] {
-    background-color: hsl(120, 100%, 75%);
+	background-color: hsl(120, 100%, 75%);
 }
 .extraLembreteTodos[data-cor='vermelho'] {
-    background-color: hsl(0, 100%, 75%);
+	background-color: hsl(0, 100%, 75%);
 }
 .extraLembrete a {
-    float: right;
-    vertical-align: middle;
-    margin-left: 0.5ex;
+	float: right;
+	vertical-align: middle;
+	margin-left: 0.5ex;
 }
 .extraLembrete a:last-of-type {
-    margin-left: 3ex;
+	margin-left: 3ex;
 }
 .extraLembrete a img {
-    width: 16px !important;
-    height: 16px !important;
+	width: 16px !important;
+	height: 16px !important;
 }
-.extraLembretePara, .extraLembreteData {
-    color: hsl(0, 0%, 33%);
+.extraLembretePara,
+.extraLembreteData {
+	color: hsl(0, 0%, 33%);
 }
 .extraLembretePara {
-    margin-bottom: 1em;
-    line-height: 16px;
+	margin-bottom: 1em;
+	line-height: 16px;
 }
 .extraLembreteData {
-    margin-top: 1em;
-    text-align: right;
+	margin-top: 1em;
+	text-align: right;
 }
 .extraLembrete abbr {
-    color: hsl(240, 50%, 25%);
-    border-bottom: 1pt dotted;
+	color: hsl(240, 50%, 25%);
+	border-bottom: 1pt dotted;
 }
 .extraSeparador {
-    clear: both;
+	clear: both;
 }
 .extraTabelaEventos img,
 .extraTabelaEventos img.infraImg,
 .extraTabelaEventos img.infraImgNormal,
 .extraTabelaEventos img.infraImg:hover,
 .extraTabelaEventos img.infraImgNormal:hover {
-    position: inherit !important;
-    margin-top: inherit !important;
-    margin-left: 1px !important;
-    width: 13px !important;
-    height: inherit !important;
+	position: inherit !important;
+	margin-top: inherit !important;
+	margin-left: 1px !important;
+	width: 13px !important;
+	height: inherit !important;
 }
 .extraTabelaEventos a {
-    display: inline-block;
+	display: inline-block;
 }
 .extraTabelaEventos td:first-of-type,
 .extraTabelaEventos td:nth-of-type(2) {
-    white-space: nowrap;
+	white-space: nowrap;
 }
 .extraDocumentoObservacao,
 .extraDocumentoMemo {
-    display: none;
+	display: none;
 }
 #txtNumProcessoPesquisaRapida[placeholder] {
-    width: 135px;
-    font-size: 1.1em;
+	width: 135px;
+	font-size: 1.1em;
 }
 #txtNumProcessoPesquisaRapida:-moz-placeholder {
-    font-style: italic;
-    color: gray;
+	font-style: italic;
+	color: gray;
 }
 a.extraLinkAcao {
-    display: inline-block;
-    padding: 3px 1px;
-    text-decoration: none;
-    margin: 0 .25ex .5em;
-    background-color: #ddd;
-    border: 1px outset #ddd;
+	display: inline-block;
+	padding: 3px 1px;
+	text-decoration: none;
+	margin: 0 0.25ex 0.5em;
+	background-color: #ddd;
+	border: 1px outset #ddd;
 }
 a.extraLinkAcao:hover {
-    background-color: #eee;
-    border-color: #eee;
+	background-color: #eee;
+	border-color: #eee;
 }
 .extraIconeAcao {
-    display: none;
-    vertical-align: middle;
-    margin: auto 2px;
+	display: none;
+	vertical-align: middle;
+	margin: auto 2px;
 }
 .extraAcoesMostrarIcones .extraIconeAcao {
-    display: inherit;
+	display: inherit;
 }
 .extraAcoesSeparador {
-    display: none;
+	display: none;
 }
 .extraAcoesDestacadas {
-    display: none;
+	display: none;
 }
 .extraAcoesDestacar .extraAcoesDestacadas {
-    display: inherit;
-    text-align: center;
+	display: inherit;
+	text-align: center;
 }
 .extraAcoesDestacar .extraAcoesDestacadas a.infraButton,
 .extraAcoesDestacar .extraAcoesDestacadas a.extraLinkAcao {
-    font-weight: bold;
-    font-size: 1.4em;
+	font-weight: bold;
+	font-size: 1.4em;
 }
 .extraAcoesDestacar .extraLinkAcaoDestacadaOriginal {
-    display: none;
+	display: none;
 }
 .extraAcoesOpcoes {
-    display: none;
-    float: right;
-    margin-left: 1ex;
-    font-size: 0.9em;
-    line-height: 1em;
+	display: none;
+	float: right;
+	margin-left: 1ex;
+	font-size: 0.9em;
+	line-height: 1em;
 }
 #fldAcoes:hover .extraAcoesOpcoes {
-    display: inline-block;
+	display: inline-block;
 }
 #fldAcoes .extraAcoesLegend {
-    font-weight: bold;
-    float: left;
+	font-weight: bold;
+	float: left;
 }
 tr.extraLocalizador[data-processos] {
-    cursor: pointer;
+	cursor: pointer;
 }
-tr.extraLocalizador[data-processos="0"] {
-    cursor: default;
+tr.extraLocalizador[data-processos='0'] {
+	cursor: default;
 }
-tr.extraLocalizador[data-processos] a, tr.extraLocalizador[data-processos] u {
-    text-decoration: none;
+tr.extraLocalizador[data-processos] a,
+tr.extraLocalizador[data-processos] u {
+	text-decoration: none;
 }
-tr.extraLocalizador[data-processos="0"] td, tr.extraLocalizador[data-processos="0"] td u {
-    color: #999;
+tr.extraLocalizador[data-processos='0'] td,
+tr.extraLocalizador[data-processos='0'] td u {
+	color: #999;
 }
 .extraMarker {
-    float: left;
-    color: white;
-    padding: 5px;
-    font-size: 1.2em;
-    margin-left: 5px;
-    -moz-border-radius: 5px;
-    border-radius: 5px;
-    font-weight: bold;
+	float: left;
+	color: white;
+	padding: 5px;
+	font-size: 1.2em;
+	margin-left: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	font-weight: bold;
 }
 .extraMarkerReuPreso {
-    background-color: red;
+	background-color: red;
 }
 .extraMarkerPrioridade {
-    background-color: brown;
+	background-color: brown;
 }
 #lastClicked {
-    background-color: yellow;
+	background-color: yellow;
 }
 #tableRelacionado {
-    display: table;
+	display: table;
 }
 #labelRelacionado {
-    display: block;
+	display: block;
 }
 .extraRelacionados tr,
 .extraRelacionados:hover tfoot tr {
-    display: none;
+	display: none;
 }
 .extraRelacionados tr:first-of-type,
 .extraRelacionados tfoot tr,
 .extraRelacionados:hover tr {
-    display: inherit;
+	display: inherit;
 }
