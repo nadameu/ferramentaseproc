@@ -162,6 +162,9 @@ class Maybe<A> {
 	getOrElse(defaultValue: A): A {
 		return this.fold(() => defaultValue, x => x);
 	}
+	getOrElseL(lazy: () => A): A {
+		return this.fold(lazy, x => x);
+	}
 	map<B>(f: (_: A) => B): Maybe<B> {
 		return this.chain(x => Just(f(x)));
 	}
@@ -204,8 +207,47 @@ class Ordering {
 	}
 }
 
-const enum PreferenciasUsuario {
+class Preferencias {
+	static on<T>(nome: PreferenciasExtensao, f: (_: boolean) => T | Promise<T>): Promise<T> {
+		browser.storage.onChanged.addListener((changes, areaName) => {
+			if (areaName !== 'local') return;
+			const changed = Object.keys(changes);
+			if (!changed.includes(nome)) return;
+			Promise.resolve(f(((changes as any)[nome] as browser.storage.StorageChange).newValue)).then(
+				x => {
+					if (x) console.log(x);
+				},
+				err => console.error(err)
+			);
+		});
+		return browser.storage.local.get({ [nome]: true }).then(obj => {
+			return f(obj[nome]);
+		});
+	}
+}
+
+const enum PreferenciasEproc {
 	BOTOES_NO_MENU_ACOES = 5,
+}
+
+const enum PreferenciasExtensao {
+	ESTILOS = 'estilos',
+	AUTOCOMPLETAR = 'autocompletar',
+	PESQUISA_RAPIDA = 'pesquisa-rapida',
+	TABELA_PROCESSOS = 'tabela-processos',
+	ICONES_ACOES = 'icones-acoes',
+	ENTRAR = 'entrar',
+}
+
+function adicionarEstilos(css: string) {
+	const style = query<HTMLStyleElement>('style#extraEstilos').getOrElseL(() => {
+		const template = document.createElement('template');
+		template.innerHTML = '<style id="extraEstilos"></style>';
+		const style = document.importNode(template.content, true).firstElementChild as HTMLStyleElement;
+		document.head.appendChild(style);
+		return style;
+	});
+	style.insertAdjacentText('beforeend', css);
 }
 
 function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'screen') {
@@ -233,6 +275,25 @@ function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'scre
 	return promise;
 }
 
+function carregarEstilosPersonalizados() {
+	const promises: Promise<any>[] = [];
+	query('.infraBarraSistema').ifJust(() => {
+		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
+		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
+		query<HTMLLinkElement>('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
+			const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href) as RegExpExecArray;
+			const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
+			const skin = skins.has(result[1]) ? skins.get(result[1]) : 'stock';
+			promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
+		});
+	});
+	return Promise.all(promises);
+}
+
+function centralizarListaPerfis() {
+	adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
+}
+
 function corrigirCamposAutoCompletar() {
 	queryAll(
 		'label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade'
@@ -257,21 +318,6 @@ function corrigirPesquisaRapida() {
 				pesquisaRapida.removeAttribute('onclick');
 			}
 		});
-}
-
-function carregarEstilosPersonalizados() {
-	const promises: Promise<any>[] = [];
-	query('.infraBarraSistema').ifJust(() => {
-		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
-		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
-		query<HTMLLinkElement>('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
-			const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href) as RegExpExecArray;
-			const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
-			const skin = skins.has(result[1]) ? skins.get(result[1]) : 'stock';
-			promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
-		});
-	});
-	return Promise.all(promises);
 }
 
 function liftA2<A, B, C>(mx: Maybe<A>, my: Maybe<B>, f: (x: A, y: B) => C): Maybe<C>;
@@ -359,17 +405,17 @@ function modificarTabelaProcessos() {
 	}
 }
 
-async function mostrarIconesNoMenuAcoes() {
-	const mostrarIcones = await obterPreferenciaExtensao('v2.mostraricones', true);
+function mostrarIconesNoMenuAcoes() {
 	const maybeFieldset = query<HTMLFieldSetElement>('fieldset#fldAcoes');
-	const maybeLegend = maybeFieldset.chain(fieldset => query<HTMLLegendElement>('legend', fieldset));
-	const promises = liftA2(maybeFieldset, maybeLegend, (fieldset, legend) => {
-		fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones);
+	const maybeLegend = maybeFieldset.chain(fieldset =>
+		query<HTMLLegendElement>(':scope > legend', fieldset)
+	);
+	return liftA2(maybeFieldset, maybeLegend, async (fieldset, legend) => {
 		const acoes = queryAll<HTMLAnchorElement>(':scope > center a', fieldset);
 		if (acoes.isEmpty()) return [];
 
 		const botoesNoMenuAcoes = obterPreferenciaEproc(
-			PreferenciasUsuario.BOTOES_NO_MENU_ACOES
+			PreferenciasEproc.BOTOES_NO_MENU_ACOES
 		).getOrElse(acoes.every(acao => acao.classList.contains('infraButton')));
 		if (!botoesNoMenuAcoes) return [];
 
@@ -377,112 +423,112 @@ async function mostrarIconesNoMenuAcoes() {
 		template.innerHTML = `<div class="extraAcoesOpcoes noprint"><input type="checkbox" id="chkMostrarIcones"><label for="chkMostrarIcones"> Mostrar Ícones</label></div>`;
 		const content = document.importNode(template.content, true);
 		const chkMostrarIcones = content.querySelector('#chkMostrarIcones') as HTMLInputElement;
-		chkMostrarIcones.checked = mostrarIcones;
+		const key = PreferenciasExtensao.ICONES_ACOES;
 		chkMostrarIcones.addEventListener('change', () => {
-			browser.storage.local.set({ 'v2.mostraricones': chkMostrarIcones.checked });
-		});
-		browser.storage.onChanged.addListener((changes, areaName) => {
-			if (areaName !== 'local') return;
-
-			const changedItems = Object.keys(changes);
-			if (!changedItems.includes('v2.mostraricones')) return;
-
-			const mostrarIcones = (changes as any)['v2.mostraricones'] as browser.storage.StorageChange;
-			if (mostrarIcones.newValue !== mostrarIcones.oldValue) {
-				chkMostrarIcones.checked = mostrarIcones.newValue;
-				fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones.newValue);
-			}
+			browser.storage.local.set({ [key]: chkMostrarIcones.checked });
 		});
 		legend.appendChild(content);
 
-		const iconeTemplate = document.createElement('template');
-		iconeTemplate.innerHTML = '<img alt=" " class="extraIconeAcao noprint">';
-		function criarIcone(src: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-			return function criarIcone(link) {
-				const icone = document.importNode(iconeTemplate.content, true)
-					.firstElementChild as HTMLImageElement;
-				return new Promise((resolve, reject) => {
-					function onload(_: Event) {
-						removeListeners();
-						resolve(icone);
-					}
-					function onerror(e: Event) {
-						removeListeners();
-						reject(e);
-					}
-					function removeListeners() {
-						icone.removeEventListener('load', onload);
-						icone.removeEventListener('error', onerror);
-					}
-					icone.addEventListener('load', onload);
-					icone.addEventListener('error', onerror);
-					link.insertAdjacentElement('afterbegin', icone);
-					icone.src = src;
-				});
-			};
-		}
-		function ChromeIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-			return criarIcone(browser.runtime.getURL(`chrome/skin/${arquivo}`));
-		}
-		function InfraIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-			return criarIcone(`infra_css/imagens/${arquivo}`);
-		}
+		let carregado = false;
 
-		const icones = new Map([
-			['acessar_processo_gedpro', ChromeIcone('ie.png')],
-			['acesso_usuario_processo_cadastrar', InfraIcone('menos.gif')],
-			['arvore_documento_listar', ChromeIcone('tree.gif')],
-			['audiencia_listar', ChromeIcone('microphone.png')],
-			['criar_mandado', ChromeIcone('knight-crest.gif')],
-			['gerenciamento_partes_listar', InfraIcone('grupo.gif')],
-			['gerenciamento_partes_situacao_listar', InfraIcone('marcar.gif')],
-			['gerenciamento_peritos_listar', ChromeIcone('graduation-hat.png')],
-			['intimacao_bloco_filtrar', InfraIcone('versoes.gif')],
-			['oficio_requisitorio_listar', ChromeIcone('money.png')],
-			['processo_agravar', InfraIcone('atualizar.gif')],
-			['processo_apelacao', ChromeIcone('up.png')],
-			['processo_cadastrar', InfraIcone('atualizar.gif')],
-			['processo_citacao', ChromeIcone('newspaper.png')],
-			['processo_consultar', InfraIcone('lupa.gif')],
-			['processo_edicao', InfraIcone('assinar.gif')],
-			['processo_expedir_carta_subform', InfraIcone('email.gif')],
-			['processo_gerenciar_proc_individual_listar', InfraIcone('marcar.gif')],
-			['processo_intimacao', InfraIcone('encaminhar.gif')],
-			['processo_intimacao_aps_bloco', InfraIcone('transportar.gif')],
-			['processo_intimacao_bloco', InfraIcone('encaminhar.gif')],
-			['processo_lembrete_destino_cadastrar', InfraIcone('tooltip.gif')],
-			['processo_movimento_consultar', InfraIcone('receber.gif')],
-			['processo_movimento_desativar_consulta', InfraIcone('remover.gif')],
-			['processo_remessa_tr', ChromeIcone('up.png')],
-			['processo_requisicao_cef', ChromeIcone('predio.png')],
-			['procurador_parte_associar', InfraIcone('mais.gif')],
-			['procurador_parte_listar', InfraIcone('mais.gif')],
-			['redistribuicao_entre_secoes', InfraIcone('hierarquia.gif')],
-			['redistribuicao_processo', InfraIcone('hierarquia.gif')],
-			['requisicao_pagamento_cadastrar', ChromeIcone('money.png')],
-			['selecionar_processos_agendar_arquivo_completo', InfraIcone('pdf.gif')],
-			['selecionar_processos_remessa_instancia_superior', ChromeIcone('up.png')],
-			['selecionar_processos_remessa_instancia_superior_stf', ChromeIcone('up.png')],
-		]);
-
-		const promises: Promise<any>[] = [];
-		acoes.forEach(link => {
-			const url = new URL(link.href);
-			const params = url.searchParams;
-			if (params.has('acao')) {
-				const acao = params.get('acao') as string;
-				if (icones.has(acao)) {
-					const adicionarIcone = icones.get(acao) as (_: HTMLAnchorElement) => Promise<any>;
-					promises.push(adicionarIcone(link));
+		return Preferencias.on(PreferenciasExtensao.ICONES_ACOES, async mostrarIcones => {
+			fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones);
+			chkMostrarIcones.checked = mostrarIcones;
+			if (mostrarIcones && !carregado) {
+				const iconeTemplate = document.createElement('template');
+				iconeTemplate.innerHTML = '<img alt=" " class="extraIconeAcao noprint">';
+				function criarIcone(src: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+					return function criarIcone(link) {
+						const icone = document.importNode(iconeTemplate.content, true)
+							.firstElementChild as HTMLImageElement;
+						return new Promise((resolve, reject) => {
+							function onload(_: Event) {
+								removeListeners();
+								resolve(icone);
+							}
+							function onerror(e: Event) {
+								removeListeners();
+								reject(e);
+							}
+							function removeListeners() {
+								icone.removeEventListener('load', onload);
+								icone.removeEventListener('error', onerror);
+							}
+							icone.addEventListener('load', onload);
+							icone.addEventListener('error', onerror);
+							link.insertAdjacentElement('afterbegin', icone);
+							icone.src = src;
+						});
+					};
 				}
+				function ChromeIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+					return criarIcone(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+				}
+				function InfraIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+					return criarIcone(`infra_css/imagens/${arquivo}`);
+				}
+
+				const icones = new Map([
+					['acessar_processo_gedpro', ChromeIcone('ie.png')],
+					['acesso_usuario_processo_cadastrar', InfraIcone('menos.gif')],
+					['arvore_documento_listar', ChromeIcone('tree.gif')],
+					['audiencia_listar', ChromeIcone('microphone.png')],
+					['criar_mandado', ChromeIcone('knight-crest.gif')],
+					['gerenciamento_partes_listar', InfraIcone('grupo.gif')],
+					['gerenciamento_partes_situacao_listar', InfraIcone('marcar.gif')],
+					['gerenciamento_peritos_listar', ChromeIcone('graduation-hat.png')],
+					['intimacao_bloco_filtrar', InfraIcone('versoes.gif')],
+					['oficio_requisitorio_listar', ChromeIcone('money.png')],
+					['processo_agravar', InfraIcone('atualizar.gif')],
+					['processo_apelacao', ChromeIcone('up.png')],
+					['processo_cadastrar', InfraIcone('atualizar.gif')],
+					['processo_citacao', ChromeIcone('newspaper.png')],
+					['processo_consultar', InfraIcone('lupa.gif')],
+					['processo_edicao', InfraIcone('assinar.gif')],
+					['processo_expedir_carta_subform', InfraIcone('email.gif')],
+					['processo_gerenciar_proc_individual_listar', InfraIcone('marcar.gif')],
+					['processo_intimacao', InfraIcone('encaminhar.gif')],
+					['processo_intimacao_aps_bloco', InfraIcone('transportar.gif')],
+					['processo_intimacao_bloco', InfraIcone('encaminhar.gif')],
+					['processo_lembrete_destino_cadastrar', InfraIcone('tooltip.gif')],
+					['processo_movimento_consultar', InfraIcone('receber.gif')],
+					['processo_movimento_desativar_consulta', InfraIcone('remover.gif')],
+					['processo_remessa_tr', ChromeIcone('up.png')],
+					['processo_requisicao_cef', ChromeIcone('predio.png')],
+					['procurador_parte_associar', InfraIcone('mais.gif')],
+					['procurador_parte_listar', InfraIcone('mais.gif')],
+					['redistribuicao_entre_secoes', InfraIcone('hierarquia.gif')],
+					['redistribuicao_processo', InfraIcone('hierarquia.gif')],
+					['requisicao_pagamento_cadastrar', ChromeIcone('money.png')],
+					['selecionar_processos_agendar_arquivo_completo', InfraIcone('pdf.gif')],
+					['selecionar_processos_remessa_instancia_superior', ChromeIcone('up.png')],
+					['selecionar_processos_remessa_instancia_superior_stf', ChromeIcone('up.png')],
+				]);
+
+				const promises: Promise<HTMLImageElement>[] = [];
+				acoes.forEach(link => {
+					const url = new URL(link.href);
+					const params = url.searchParams;
+					if (params.has('acao')) {
+						const acao = params.get('acao') as string;
+						if (icones.has(acao)) {
+							const adicionarIcone = icones.get(acao) as (
+								_: HTMLAnchorElement
+							) => Promise<HTMLImageElement>;
+							promises.push(adicionarIcone(link));
+						}
+					}
+				});
+
+				carregado = true;
+				return Promise.all(promises);
 			}
+			return Promise.resolve([]);
 		});
-		return promises;
-	}).getOrElse([]);
-	return Promise.all(promises);
+	}).getOrElse(Promise.resolve([]));
 }
 
-function obterPreferenciaEproc(num: PreferenciasUsuario): Maybe<boolean> {
+function obterPreferenciaEproc(num: PreferenciasEproc): Maybe<boolean> {
 	return Maybe.fromNullable(window.wrappedJSObject.localStorage.getItem(`ch${num}`))
 		.refine((x): x is 'S' | 'N' => /^[SN]$/.test(x))
 		.map(x => x === 'S');
@@ -523,7 +569,10 @@ function verificarCompatibilidadeVersao() {
 	}
 }
 
-const Acoes = new Map<string, () => void>();
+const Acoes = new Map<string, () => void>([
+	['entrar', centralizarListaPerfis],
+	['entrar_cert', centralizarListaPerfis],
+]);
 const AcoesOrigem = new Map<string, () => void>();
 
 main().then(
