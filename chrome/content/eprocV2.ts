@@ -2,16 +2,26 @@ const unsafeWindow = window.wrappedJSObject;
 
 async function main() {
 	verificarCompatibilidadeVersao();
-	carregarEstilosPersonalizados();
+	await carregarEstilosPersonalizados();
 	corrigirCamposAutoCompletar();
 	corrigirPesquisaRapida();
 	modificarTabelaProcessos();
+	modificarPaginaEspecifica();
+	await mostrarIconesNoMenuAcoes();
+}
+
+interface Apply<A> {
+	ap<B>(that: Apply<(_: A) => B>): Apply<B>;
+	map<B>(f: (_: A) => B): Apply<B>;
 }
 
 class List<A> {
 	constructor(readonly fold: <B>(Nil: () => B, Cons: (head: A, tail: List<A>) => B) => B) {}
 	alt(that: List<A>): List<A> {
 		return this.isEmpty() ? that : this;
+	}
+	altL(lazy: () => List<A>): List<A> {
+		return this.isEmpty() ? lazy() : this;
 	}
 	chain<B>(f: (_: A) => List<B>): List<B> {
 		return new List((N, C) =>
@@ -27,6 +37,24 @@ class List<A> {
 	}
 	count(): number {
 		return this.reduce(x => x + 1, 0);
+	}
+	every(p: (_: A) => boolean): boolean {
+		let done = false;
+		let current: List<A> = this;
+		let acc = true;
+		while (!done) {
+			current.fold(
+				() => {
+					done = true;
+				},
+				(x, xs) => {
+					acc = acc && p(x);
+					if (!acc) done = true;
+					current = xs;
+				}
+			);
+		}
+		return acc;
 	}
 	filter(p: (_: A) => boolean): List<A> {
 		return new List((N, C) => this.fold(N, (x, xs) => (p(x) ? C(x, xs) : xs.filter(p).fold(N, C))));
@@ -59,6 +87,9 @@ class List<A> {
 	isEmpty(): boolean {
 		return this.fold(() => true, () => false);
 	}
+	limit(n: number): List<A> {
+		return new List((N, C) => (n <= 0 ? N() : this.fold(N, (x, xs) => C(x, xs.limit(n - 1)))));
+	}
 	map<B>(f: (_: A) => B): List<B> {
 		return new List((N, C) => this.fold(N, (x, xs) => C(f(x), xs.map(f))));
 	}
@@ -78,6 +109,9 @@ class List<A> {
 		return result;
 	}
 
+	static empty<A = never>(): List<A> {
+		return new List((N, _) => N());
+	}
 	static fromArray<A>(xs: ArrayLike<A>): List<A> {
 		let limit = 1e3;
 		const len = xs.length;
@@ -111,7 +145,7 @@ class List<A> {
 class Maybe<A> {
 	constructor(readonly fold: <B>(Nothing: () => B, Just: (_: A) => B) => B) {}
 	ap<B>(that: Maybe<(_: A) => B>): Maybe<B> {
-		return that.chain(this.map);
+		return that.chain(f => this.map(f));
 	}
 	filter(p: (_: A) => boolean): Maybe<A> {
 		return this.fold(() => Nothing, x => (p(x) ? Just(x) : Nothing));
@@ -124,6 +158,9 @@ class Maybe<A> {
 	}
 	chain<B>(f: (_: A) => Maybe<B>): Maybe<B> {
 		return this.fold(() => Nothing, f);
+	}
+	getOrElse(defaultValue: A): A {
+		return this.fold(() => defaultValue, x => x);
 	}
 	map<B>(f: (_: A) => B): Maybe<B> {
 		return this.chain(x => Just(f(x)));
@@ -167,12 +204,33 @@ class Ordering {
 	}
 }
 
+const enum PreferenciasUsuario {
+	BOTOES_NO_MENU_ACOES = 5,
+}
+
 function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'screen') {
 	const link = document.createElement('link');
 	link.rel = 'stylesheet';
 	link.media = media;
+	const promise = new Promise<Event>((resolve, reject) => {
+		function removeListeners() {
+			link.removeEventListener('load', onload);
+			link.removeEventListener('error', onerror);
+		}
+		function onload(e: Event) {
+			removeListeners();
+			resolve(e);
+		}
+		function onerror(e: Event) {
+			removeListeners();
+			reject(e);
+		}
+		link.addEventListener('load', onload);
+		link.addEventListener('error', onerror);
+	});
 	link.href = browser.runtime.getURL(path);
 	document.head.appendChild(link);
+	return promise;
 }
 
 function corrigirCamposAutoCompletar() {
@@ -202,58 +260,80 @@ function corrigirPesquisaRapida() {
 }
 
 function carregarEstilosPersonalizados() {
+	const promises: Promise<any>[] = [];
 	query('.infraBarraSistema').ifJust(() => {
-		adicionarLinkStylesheet('chrome/skin/eprocV2.css');
-		adicionarLinkStylesheet('chrome/skin/print.css', 'print');
+		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
+		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
 		query<HTMLLinkElement>('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
 			const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href) as RegExpExecArray;
 			const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
 			const skin = skins.has(result[1]) ? skins.get(result[1]) : 'stock';
-			adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`);
+			promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
 		});
 	});
+	return Promise.all(promises);
+}
+
+function liftA2<A, B, C>(mx: Maybe<A>, my: Maybe<B>, f: (x: A, y: B) => C): Maybe<C>;
+function liftA2<A, B, C>(ax: Apply<A>, ay: Apply<B>, f: (x: A, y: B) => C): Apply<C> {
+	return ay.ap(ax.map((x: A) => (y: B) => f(x, y)));
+}
+
+function modificarPaginaEspecifica() {
+	const url = new URL(location.href);
+	const params = url.searchParams;
+	if (params.has('acao')) {
+		const acao = params.get('acao') as string;
+		if (Acoes.has(acao)) {
+			const fn = Acoes.get(acao) as () => void;
+			return fn();
+		}
+	}
+	if (params.has('acao_origem')) {
+		const acaoOrigem = params.get('acao_origem') as string;
+		if (AcoesOrigem.has(acaoOrigem)) {
+			const fn = AcoesOrigem.get(acaoOrigem) as () => void;
+			return fn();
+		}
+	}
 }
 
 function modificarTabelaProcessos() {
-	function findTh(campo: string, texto: string) {
+	function encontrarTH(campo: string, texto: string) {
 		const setas = queryAll<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
-		if (setas.count() !== 1) {
+		if (setas.count() === 1) {
+			return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
+		} else {
 			return queryAll<HTMLTableHeaderCellElement>('th.infraTh').filter(
 				th => th.textContent === texto
 			);
-		} else {
-			return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
 		}
 	}
-	let classeTh = findTh('DesClasseJudicial', 'Classe');
-	const juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
-	let th = classeTh.alt(juizoTh);
-	if (th.isEmpty()) {
-		const tr = queryAll<HTMLTableRowElement>('tr[data-classe]');
-		if (tr.count() > 0) {
-			const table = tr.filterMap(tr => Maybe.fromNullable(tr.closest('table')));
-			classeTh = table
-				.chain(t => queryAll<HTMLTableHeaderCellElement>('th.infraTh', t))
-				.filter(th => /^Classe( Judicial)?$/.test(th.textContent || ''));
-		}
-		th = classeTh;
-	}
-	if (th.isEmpty()) {
-		classeTh = queryAll<HTMLTableHeaderCellElement>('th.infraTh').filter(th =>
+	function obterTHsValidos(context: NodeSelector = document): List<HTMLTableHeaderCellElement> {
+		return queryAll<HTMLTableHeaderCellElement>('th.infraTh', context).filter(th =>
 			/^Classe( Judicial)?$/.test((th.textContent || '').trim())
 		);
-		th = classeTh;
 	}
+	const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
+	let th = encontrarTH('DesClasseJudicial', 'Classe')
+		.alt(juizoTh)
+		.altL(() =>
+			queryAll<HTMLTableRowElement>('tr[data-classe]')
+				.limit(1)
+				.filterMap(tr => Maybe.fromNullable(tr.closest('table')))
+				.chain(obterTHsValidos)
+		)
+		.altL(() => obterTHsValidos());
 	if (!th.isEmpty()) {
 		const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-		table.forEach(t => {
-			t.removeAttribute('width');
+		table.forEach(tbl => {
+			tbl.removeAttribute('width');
 		});
-		table.chain(t => queryAll<HTMLTableHeaderCellElement>('th', t)).forEach(t => {
-			t.removeAttribute('width');
+		table.chain(tbl => queryAll<HTMLTableHeaderCellElement>('th', tbl)).forEach(th => {
+			th.removeAttribute('width');
 		});
-		juizoTh.ifCons(j => {
-			const juizoIndex = j.cellIndex;
+		juizoTh.ifCons(jzo => {
+			const juizoIndex = jzo.cellIndex;
 			const colors = new Map([
 				['A', 'black'],
 				['B', 'green'],
@@ -265,11 +345,11 @@ function modificarTabelaProcessos() {
 				['H', 'red'],
 			]);
 			table
-				.chain(t => List.fromArray(t.rows))
+				.chain(tbl => List.fromArray(tbl.rows))
 				.filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
 				.forEach(tr => {
 					const juizoCell = tr.cells[juizoIndex];
-					const juizoText = juizoCell.textContent as string;
+					const juizoText = juizoCell.textContent || '_';
 					const juizo = juizoText[juizoText.length - 1];
 					if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
 						juizoCell.style.color = colors.has(juizo) ? (colors.get(juizo) as string) : 'black';
@@ -277,6 +357,140 @@ function modificarTabelaProcessos() {
 				});
 		});
 	}
+}
+
+async function mostrarIconesNoMenuAcoes() {
+	const mostrarIcones = await obterPreferenciaExtensao('v2.mostraricones', true);
+	const maybeFieldset = query<HTMLFieldSetElement>('fieldset#fldAcoes');
+	const maybeLegend = maybeFieldset.chain(fieldset => query<HTMLLegendElement>('legend', fieldset));
+	const promises = liftA2(maybeFieldset, maybeLegend, (fieldset, legend) => {
+		fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones);
+		const acoes = queryAll<HTMLAnchorElement>(':scope > center a', fieldset);
+		if (acoes.isEmpty()) return [];
+
+		const botoesNoMenuAcoes = obterPreferenciaEproc(
+			PreferenciasUsuario.BOTOES_NO_MENU_ACOES
+		).getOrElse(acoes.every(acao => acao.classList.contains('infraButton')));
+		if (!botoesNoMenuAcoes) return [];
+
+		const template = document.createElement('template');
+		template.innerHTML = `<div class="extraAcoesOpcoes noprint"><input type="checkbox" id="chkMostrarIcones"><label for="chkMostrarIcones"> Mostrar Ícones</label></div>`;
+		const content = document.importNode(template.content, true);
+		const chkMostrarIcones = content.querySelector('#chkMostrarIcones') as HTMLInputElement;
+		chkMostrarIcones.checked = mostrarIcones;
+		chkMostrarIcones.addEventListener('change', () => {
+			browser.storage.local.set({ 'v2.mostraricones': chkMostrarIcones.checked });
+		});
+		browser.storage.onChanged.addListener((changes, areaName) => {
+			if (areaName !== 'local') return;
+
+			const changedItems = Object.keys(changes);
+			if (!changedItems.includes('v2.mostraricones')) return;
+
+			const mostrarIcones = (changes as any)['v2.mostraricones'] as browser.storage.StorageChange;
+			if (mostrarIcones.newValue !== mostrarIcones.oldValue) {
+				chkMostrarIcones.checked = mostrarIcones.newValue;
+				fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones.newValue);
+			}
+		});
+		legend.appendChild(content);
+
+		const iconeTemplate = document.createElement('template');
+		iconeTemplate.innerHTML = '<img alt=" " class="extraIconeAcao noprint">';
+		function criarIcone(src: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+			return function criarIcone(link) {
+				const icone = document.importNode(iconeTemplate.content, true)
+					.firstElementChild as HTMLImageElement;
+				return new Promise((resolve, reject) => {
+					function onload(_: Event) {
+						removeListeners();
+						resolve(icone);
+					}
+					function onerror(e: Event) {
+						removeListeners();
+						reject(e);
+					}
+					function removeListeners() {
+						icone.removeEventListener('load', onload);
+						icone.removeEventListener('error', onerror);
+					}
+					icone.addEventListener('load', onload);
+					icone.addEventListener('error', onerror);
+					link.insertAdjacentElement('afterbegin', icone);
+					icone.src = src;
+				});
+			};
+		}
+		function ChromeIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+			return criarIcone(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+		}
+		function InfraIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
+			return criarIcone(`infra_css/imagens/${arquivo}`);
+		}
+
+		const icones = new Map([
+			['acessar_processo_gedpro', ChromeIcone('ie.png')],
+			['acesso_usuario_processo_cadastrar', InfraIcone('menos.gif')],
+			['arvore_documento_listar', ChromeIcone('tree.gif')],
+			['audiencia_listar', ChromeIcone('microphone.png')],
+			['criar_mandado', ChromeIcone('knight-crest.gif')],
+			['gerenciamento_partes_listar', InfraIcone('grupo.gif')],
+			['gerenciamento_partes_situacao_listar', InfraIcone('marcar.gif')],
+			['gerenciamento_peritos_listar', ChromeIcone('graduation-hat.png')],
+			['intimacao_bloco_filtrar', InfraIcone('versoes.gif')],
+			['oficio_requisitorio_listar', ChromeIcone('money.png')],
+			['processo_agravar', InfraIcone('atualizar.gif')],
+			['processo_apelacao', ChromeIcone('up.png')],
+			['processo_cadastrar', InfraIcone('atualizar.gif')],
+			['processo_citacao', ChromeIcone('newspaper.png')],
+			['processo_consultar', InfraIcone('lupa.gif')],
+			['processo_edicao', InfraIcone('assinar.gif')],
+			['processo_expedir_carta_subform', InfraIcone('email.gif')],
+			['processo_gerenciar_proc_individual_listar', InfraIcone('marcar.gif')],
+			['processo_intimacao', InfraIcone('encaminhar.gif')],
+			['processo_intimacao_aps_bloco', InfraIcone('transportar.gif')],
+			['processo_intimacao_bloco', InfraIcone('encaminhar.gif')],
+			['processo_lembrete_destino_cadastrar', InfraIcone('tooltip.gif')],
+			['processo_movimento_consultar', InfraIcone('receber.gif')],
+			['processo_movimento_desativar_consulta', InfraIcone('remover.gif')],
+			['processo_remessa_tr', ChromeIcone('up.png')],
+			['processo_requisicao_cef', ChromeIcone('predio.png')],
+			['procurador_parte_associar', InfraIcone('mais.gif')],
+			['procurador_parte_listar', InfraIcone('mais.gif')],
+			['redistribuicao_entre_secoes', InfraIcone('hierarquia.gif')],
+			['redistribuicao_processo', InfraIcone('hierarquia.gif')],
+			['requisicao_pagamento_cadastrar', ChromeIcone('money.png')],
+			['selecionar_processos_agendar_arquivo_completo', InfraIcone('pdf.gif')],
+			['selecionar_processos_remessa_instancia_superior', ChromeIcone('up.png')],
+			['selecionar_processos_remessa_instancia_superior_stf', ChromeIcone('up.png')],
+		]);
+
+		const promises: Promise<any>[] = [];
+		acoes.forEach(link => {
+			const url = new URL(link.href);
+			const params = url.searchParams;
+			if (params.has('acao')) {
+				const acao = params.get('acao') as string;
+				if (icones.has(acao)) {
+					const adicionarIcone = icones.get(acao) as (_: HTMLAnchorElement) => Promise<any>;
+					promises.push(adicionarIcone(link));
+				}
+			}
+		});
+		return promises;
+	}).getOrElse([]);
+	return Promise.all(promises);
+}
+
+function obterPreferenciaEproc(num: PreferenciasUsuario): Maybe<boolean> {
+	return Maybe.fromNullable(window.wrappedJSObject.localStorage.getItem(`ch${num}`))
+		.refine((x): x is 'S' | 'N' => /^[SN]$/.test(x))
+		.map(x => x === 'S');
+}
+
+async function obterPreferenciaExtensao<T>(nome: string, valorPadrao: T): Promise<T> {
+	const result = await browser.storage.local.get({ [nome]: valorPadrao });
+	return result[nome];
 }
 
 function query<T extends Element>(selector: string, context: NodeSelector = document): Maybe<T> {
@@ -308,6 +522,9 @@ function verificarCompatibilidadeVersao() {
 		throw new Error('Extensão é incompatível com a versão atual do e-Proc.');
 	}
 }
+
+const Acoes = new Map<string, () => void>();
+const AcoesOrigem = new Map<string, () => void>();
 
 main().then(
 	x => {

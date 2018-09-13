@@ -2,10 +2,12 @@
 const unsafeWindow = window.wrappedJSObject;
 async function main() {
     verificarCompatibilidadeVersao();
-    carregarEstilosPersonalizados();
+    await carregarEstilosPersonalizados();
     corrigirCamposAutoCompletar();
     corrigirPesquisaRapida();
     modificarTabelaProcessos();
+    modificarPaginaEspecifica();
+    await mostrarIconesNoMenuAcoes();
 }
 class List {
     constructor(fold) {
@@ -13,6 +15,9 @@ class List {
     }
     alt(that) {
         return this.isEmpty() ? that : this;
+    }
+    altL(lazy) {
+        return this.isEmpty() ? lazy() : this;
     }
     chain(f) {
         return new List((N, C) => this.fold(N, (x, xs) => f(x)
@@ -24,6 +29,22 @@ class List {
     }
     count() {
         return this.reduce(x => x + 1, 0);
+    }
+    every(p) {
+        let done = false;
+        let current = this;
+        let acc = true;
+        while (!done) {
+            current.fold(() => {
+                done = true;
+            }, (x, xs) => {
+                acc = acc && p(x);
+                if (!acc)
+                    done = true;
+                current = xs;
+            });
+        }
+        return acc;
     }
     filter(p) {
         return new List((N, C) => this.fold(N, (x, xs) => (p(x) ? C(x, xs) : xs.filter(p).fold(N, C))));
@@ -49,6 +70,9 @@ class List {
     isEmpty() {
         return this.fold(() => true, () => false);
     }
+    limit(n) {
+        return new List((N, C) => (n <= 0 ? N() : this.fold(N, (x, xs) => C(x, xs.limit(n - 1)))));
+    }
     map(f) {
         return new List((N, C) => this.fold(N, (x, xs) => C(f(x), xs.map(f))));
     }
@@ -66,6 +90,9 @@ class List {
         const result = [];
         this.forEach(x => result.push(x));
         return result;
+    }
+    static empty() {
+        return new List((N, _) => N());
     }
     static fromArray(xs) {
         let limit = 1e3;
@@ -103,7 +130,7 @@ class Maybe {
         this.fold = fold;
     }
     ap(that) {
-        return that.chain(this.map);
+        return that.chain(f => this.map(f));
     }
     filter(p) {
         return this.fold(() => Nothing, x => (p(x) ? Just(x) : Nothing));
@@ -116,6 +143,9 @@ class Maybe {
     }
     chain(f) {
         return this.fold(() => Nothing, f);
+    }
+    getOrElse(defaultValue) {
+        return this.fold(() => defaultValue, x => x);
     }
     map(f) {
         return this.chain(x => Just(f(x)));
@@ -155,8 +185,25 @@ function adicionarLinkStylesheet(path, media = 'screen') {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.media = media;
+    const promise = new Promise((resolve, reject) => {
+        function removeListeners() {
+            link.removeEventListener('load', onload);
+            link.removeEventListener('error', onerror);
+        }
+        function onload(e) {
+            removeListeners();
+            resolve(e);
+        }
+        function onerror(e) {
+            removeListeners();
+            reject(e);
+        }
+        link.addEventListener('load', onload);
+        link.addEventListener('error', onerror);
+    });
     link.href = browser.runtime.getURL(path);
     document.head.appendChild(link);
+    return promise;
 }
 function corrigirCamposAutoCompletar() {
     queryAll('label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade').forEach(auto => {
@@ -181,54 +228,71 @@ function corrigirPesquisaRapida() {
     });
 }
 function carregarEstilosPersonalizados() {
+    const promises = [];
     query('.infraBarraSistema').ifJust(() => {
-        adicionarLinkStylesheet('chrome/skin/eprocV2.css');
-        adicionarLinkStylesheet('chrome/skin/print.css', 'print');
+        promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
+        promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
         query('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
             const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href);
             const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
             const skin = skins.has(result[1]) ? skins.get(result[1]) : 'stock';
-            adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`);
+            promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
         });
     });
+    return Promise.all(promises);
+}
+function liftA2(ax, ay, f) {
+    return ay.ap(ax.map((x) => (y) => f(x, y)));
+}
+function modificarPaginaEspecifica() {
+    const url = new URL(location.href);
+    const params = url.searchParams;
+    if (params.has('acao')) {
+        const acao = params.get('acao');
+        if (Acoes.has(acao)) {
+            const fn = Acoes.get(acao);
+            return fn();
+        }
+    }
+    if (params.has('acao_origem')) {
+        const acaoOrigem = params.get('acao_origem');
+        if (AcoesOrigem.has(acaoOrigem)) {
+            const fn = AcoesOrigem.get(acaoOrigem);
+            return fn();
+        }
+    }
 }
 function modificarTabelaProcessos() {
-    function findTh(campo, texto) {
+    function encontrarTH(campo, texto) {
         const setas = queryAll(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
-        if (setas.count() !== 1) {
-            return queryAll('th.infraTh').filter(th => th.textContent === texto);
-        }
-        else {
+        if (setas.count() === 1) {
             return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
         }
-    }
-    let classeTh = findTh('DesClasseJudicial', 'Classe');
-    const juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
-    let th = classeTh.alt(juizoTh);
-    if (th.isEmpty()) {
-        const tr = queryAll('tr[data-classe]');
-        if (tr.count() > 0) {
-            const table = tr.filterMap(tr => Maybe.fromNullable(tr.closest('table')));
-            classeTh = table
-                .chain(t => queryAll('th.infraTh', t))
-                .filter(th => /^Classe( Judicial)?$/.test(th.textContent || ''));
+        else {
+            return queryAll('th.infraTh').filter(th => th.textContent === texto);
         }
-        th = classeTh;
     }
-    if (th.isEmpty()) {
-        classeTh = queryAll('th.infraTh').filter(th => /^Classe( Judicial)?$/.test((th.textContent || '').trim()));
-        th = classeTh;
+    function obterTHsValidos(context = document) {
+        return queryAll('th.infraTh', context).filter(th => /^Classe( Judicial)?$/.test((th.textContent || '').trim()));
     }
+    const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
+    let th = encontrarTH('DesClasseJudicial', 'Classe')
+        .alt(juizoTh)
+        .altL(() => queryAll('tr[data-classe]')
+        .limit(1)
+        .filterMap(tr => Maybe.fromNullable(tr.closest('table')))
+        .chain(obterTHsValidos))
+        .altL(() => obterTHsValidos());
     if (!th.isEmpty()) {
         const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-        table.forEach(t => {
-            t.removeAttribute('width');
+        table.forEach(tbl => {
+            tbl.removeAttribute('width');
         });
-        table.chain(t => queryAll('th', t)).forEach(t => {
-            t.removeAttribute('width');
+        table.chain(tbl => queryAll('th', tbl)).forEach(th => {
+            th.removeAttribute('width');
         });
-        juizoTh.ifCons(j => {
-            const juizoIndex = j.cellIndex;
+        juizoTh.ifCons(jzo => {
+            const juizoIndex = jzo.cellIndex;
             const colors = new Map([
                 ['A', 'black'],
                 ['B', 'green'],
@@ -240,11 +304,11 @@ function modificarTabelaProcessos() {
                 ['H', 'red'],
             ]);
             table
-                .chain(t => List.fromArray(t.rows))
+                .chain(tbl => List.fromArray(tbl.rows))
                 .filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
                 .forEach(tr => {
                 const juizoCell = tr.cells[juizoIndex];
-                const juizoText = juizoCell.textContent;
+                const juizoText = juizoCell.textContent || '_';
                 const juizo = juizoText[juizoText.length - 1];
                 if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
                     juizoCell.style.color = colors.has(juizo) ? colors.get(juizo) : 'black';
@@ -252,6 +316,132 @@ function modificarTabelaProcessos() {
             });
         });
     }
+}
+async function mostrarIconesNoMenuAcoes() {
+    const mostrarIcones = await obterPreferenciaExtensao('v2.mostraricones', true);
+    const maybeFieldset = query('fieldset#fldAcoes');
+    const maybeLegend = maybeFieldset.chain(fieldset => query('legend', fieldset));
+    const promises = liftA2(maybeFieldset, maybeLegend, (fieldset, legend) => {
+        fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones);
+        const acoes = queryAll(':scope > center a', fieldset);
+        if (acoes.isEmpty())
+            return [];
+        const botoesNoMenuAcoes = obterPreferenciaEproc(5 /* BOTOES_NO_MENU_ACOES */).getOrElse(acoes.every(acao => acao.classList.contains('infraButton')));
+        if (!botoesNoMenuAcoes)
+            return [];
+        const template = document.createElement('template');
+        template.innerHTML = `<div class="extraAcoesOpcoes noprint"><input type="checkbox" id="chkMostrarIcones"><label for="chkMostrarIcones"> Mostrar Ícones</label></div>`;
+        const content = document.importNode(template.content, true);
+        const chkMostrarIcones = content.querySelector('#chkMostrarIcones');
+        chkMostrarIcones.checked = mostrarIcones;
+        chkMostrarIcones.addEventListener('change', () => {
+            browser.storage.local.set({ 'v2.mostraricones': chkMostrarIcones.checked });
+        });
+        browser.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName !== 'local')
+                return;
+            const changedItems = Object.keys(changes);
+            if (!changedItems.includes('v2.mostraricones'))
+                return;
+            const mostrarIcones = changes['v2.mostraricones'];
+            if (mostrarIcones.newValue !== mostrarIcones.oldValue) {
+                chkMostrarIcones.checked = mostrarIcones.newValue;
+                fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones.newValue);
+            }
+        });
+        legend.appendChild(content);
+        const iconeTemplate = document.createElement('template');
+        iconeTemplate.innerHTML = '<img alt=" " class="extraIconeAcao noprint">';
+        function criarIcone(src) {
+            return function criarIcone(link) {
+                const icone = document.importNode(iconeTemplate.content, true)
+                    .firstElementChild;
+                return new Promise((resolve, reject) => {
+                    function onload(_) {
+                        removeListeners();
+                        resolve(icone);
+                    }
+                    function onerror(e) {
+                        removeListeners();
+                        reject(e);
+                    }
+                    function removeListeners() {
+                        icone.removeEventListener('load', onload);
+                        icone.removeEventListener('error', onerror);
+                    }
+                    icone.addEventListener('load', onload);
+                    icone.addEventListener('error', onerror);
+                    link.insertAdjacentElement('afterbegin', icone);
+                    icone.src = src;
+                });
+            };
+        }
+        function ChromeIcone(arquivo) {
+            return criarIcone(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+        }
+        function InfraIcone(arquivo) {
+            return criarIcone(`infra_css/imagens/${arquivo}`);
+        }
+        const icones = new Map([
+            ['acessar_processo_gedpro', ChromeIcone('ie.png')],
+            ['acesso_usuario_processo_cadastrar', InfraIcone('menos.gif')],
+            ['arvore_documento_listar', ChromeIcone('tree.gif')],
+            ['audiencia_listar', ChromeIcone('microphone.png')],
+            ['criar_mandado', ChromeIcone('knight-crest.gif')],
+            ['gerenciamento_partes_listar', InfraIcone('grupo.gif')],
+            ['gerenciamento_partes_situacao_listar', InfraIcone('marcar.gif')],
+            ['gerenciamento_peritos_listar', ChromeIcone('graduation-hat.png')],
+            ['intimacao_bloco_filtrar', InfraIcone('versoes.gif')],
+            ['oficio_requisitorio_listar', ChromeIcone('money.png')],
+            ['processo_agravar', InfraIcone('atualizar.gif')],
+            ['processo_apelacao', ChromeIcone('up.png')],
+            ['processo_cadastrar', InfraIcone('atualizar.gif')],
+            ['processo_citacao', ChromeIcone('newspaper.png')],
+            ['processo_consultar', InfraIcone('lupa.gif')],
+            ['processo_edicao', InfraIcone('assinar.gif')],
+            ['processo_expedir_carta_subform', InfraIcone('email.gif')],
+            ['processo_gerenciar_proc_individual_listar', InfraIcone('marcar.gif')],
+            ['processo_intimacao', InfraIcone('encaminhar.gif')],
+            ['processo_intimacao_aps_bloco', InfraIcone('transportar.gif')],
+            ['processo_intimacao_bloco', InfraIcone('encaminhar.gif')],
+            ['processo_lembrete_destino_cadastrar', InfraIcone('tooltip.gif')],
+            ['processo_movimento_consultar', InfraIcone('receber.gif')],
+            ['processo_movimento_desativar_consulta', InfraIcone('remover.gif')],
+            ['processo_remessa_tr', ChromeIcone('up.png')],
+            ['processo_requisicao_cef', ChromeIcone('predio.png')],
+            ['procurador_parte_associar', InfraIcone('mais.gif')],
+            ['procurador_parte_listar', InfraIcone('mais.gif')],
+            ['redistribuicao_entre_secoes', InfraIcone('hierarquia.gif')],
+            ['redistribuicao_processo', InfraIcone('hierarquia.gif')],
+            ['requisicao_pagamento_cadastrar', ChromeIcone('money.png')],
+            ['selecionar_processos_agendar_arquivo_completo', InfraIcone('pdf.gif')],
+            ['selecionar_processos_remessa_instancia_superior', ChromeIcone('up.png')],
+            ['selecionar_processos_remessa_instancia_superior_stf', ChromeIcone('up.png')],
+        ]);
+        const promises = [];
+        acoes.forEach(link => {
+            const url = new URL(link.href);
+            const params = url.searchParams;
+            if (params.has('acao')) {
+                const acao = params.get('acao');
+                if (icones.has(acao)) {
+                    const adicionarIcone = icones.get(acao);
+                    promises.push(adicionarIcone(link));
+                }
+            }
+        });
+        return promises;
+    }).getOrElse([]);
+    return Promise.all(promises);
+}
+function obterPreferenciaEproc(num) {
+    return Maybe.fromNullable(window.wrappedJSObject.localStorage.getItem(`ch${num}`))
+        .refine((x) => /^[SN]$/.test(x))
+        .map(x => x === 'S');
+}
+async function obterPreferenciaExtensao(nome, valorPadrao) {
+    const result = await browser.storage.local.get({ [nome]: valorPadrao });
+    return result[nome];
 }
 function query(selector, context = document) {
     return Maybe.fromNullable(context.querySelector(selector));
@@ -278,6 +468,8 @@ function verificarCompatibilidadeVersao() {
         throw new Error('Extensão é incompatível com a versão atual do e-Proc.');
     }
 }
+const Acoes = new Map();
+const AcoesOrigem = new Map();
 main().then(x => {
     if (x) {
         console.log(x);

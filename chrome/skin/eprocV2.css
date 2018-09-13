@@ -141,6 +141,8 @@ a.extraLinkAcao:hover {
 	display: none;
 	vertical-align: middle;
 	margin: auto 2px;
+	width: 16px;
+	height: 16px;
 }
 .extraAcoesMostrarIcones .extraIconeAcao {
 	display: inherit;
