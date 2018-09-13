@@ -2,12 +2,34 @@
 const unsafeWindow = window.wrappedJSObject;
 async function main() {
     verificarCompatibilidadeVersao();
-    mudarEstilosSeForPaginaComBarra();
+    carregarEstilosPersonalizados();
     corrigirCamposAutoCompletar();
+    corrigirPesquisaRapida();
+    modificarTabelaProcessos();
 }
 class List {
     constructor(fold) {
         this.fold = fold;
+    }
+    alt(that) {
+        return this.isEmpty() ? that : this;
+    }
+    chain(f) {
+        return new List((N, C) => this.fold(N, (x, xs) => f(x)
+            .concat(xs.chain(f))
+            .fold(N, C)));
+    }
+    concat(that) {
+        return new List((N, C) => this.fold(() => that.fold(N, C), (x, xs) => C(x, xs.concat(that))));
+    }
+    count() {
+        return this.reduce(x => x + 1, 0);
+    }
+    filter(p) {
+        return new List((N, C) => this.fold(N, (x, xs) => (p(x) ? C(x, xs) : xs.filter(p).fold(N, C))));
+    }
+    filterMap(f) {
+        return new List((N, C) => this.fold(N, (x, xs) => f(x).fold(() => xs.filterMap(f).fold(N, C), y => C(y, xs.filterMap(f)))));
     }
     forEach(f) {
         let current = this;
@@ -17,6 +39,28 @@ class List {
                 return xs;
             });
         } while (current);
+    }
+    ifCons(f) {
+        this.fold(() => { }, f);
+    }
+    ifNil(f) {
+        this.fold(f, () => { });
+    }
+    isEmpty() {
+        return this.fold(() => true, () => false);
+    }
+    map(f) {
+        return new List((N, C) => this.fold(N, (x, xs) => C(f(x), xs.map(f))));
+    }
+    reduce(f, seed) {
+        let acc = seed;
+        this.forEach(x => {
+            acc = f(acc, x);
+        });
+        return acc;
+    }
+    refine(p) {
+        return this.filter(p);
     }
     toArray() {
         const result = [];
@@ -124,7 +168,19 @@ function corrigirCamposAutoCompletar() {
         });
     });
 }
-function mudarEstilosSeForPaginaComBarra() {
+function corrigirPesquisaRapida() {
+    query('#txtNumProcessoPesquisaRapida')
+        .refine((x) => x.matches('input'))
+        .ifJust(pesquisaRapida => {
+        if ('placeholder' in pesquisaRapida) {
+            pesquisaRapida.setAttribute('placeholder', 'Pesquisa');
+            pesquisaRapida.removeAttribute('value');
+            pesquisaRapida.removeAttribute('style');
+            pesquisaRapida.removeAttribute('onclick');
+        }
+    });
+}
+function carregarEstilosPersonalizados() {
     query('.infraBarraSistema').ifJust(() => {
         adicionarLinkStylesheet('chrome/skin/eprocV2.css');
         adicionarLinkStylesheet('chrome/skin/print.css', 'print');
@@ -135,6 +191,67 @@ function mudarEstilosSeForPaginaComBarra() {
             adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`);
         });
     });
+}
+function modificarTabelaProcessos() {
+    function findTh(campo, texto) {
+        const setas = queryAll(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
+        if (setas.count() !== 1) {
+            return queryAll('th.infraTh').filter(th => th.textContent === texto);
+        }
+        else {
+            return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
+        }
+    }
+    let classeTh = findTh('DesClasseJudicial', 'Classe');
+    const juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
+    let th = classeTh.alt(juizoTh);
+    if (th.isEmpty()) {
+        const tr = queryAll('tr[data-classe]');
+        if (tr.count() > 0) {
+            const table = tr.filterMap(tr => Maybe.fromNullable(tr.closest('table')));
+            classeTh = table
+                .chain(t => queryAll('th.infraTh', t))
+                .filter(th => /^Classe( Judicial)?$/.test(th.textContent || ''));
+        }
+        th = classeTh;
+    }
+    if (th.isEmpty()) {
+        classeTh = queryAll('th.infraTh').filter(th => /^Classe( Judicial)?$/.test((th.textContent || '').trim()));
+        th = classeTh;
+    }
+    if (!th.isEmpty()) {
+        const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
+        table.forEach(t => {
+            t.removeAttribute('width');
+        });
+        table.chain(t => queryAll('th', t)).forEach(t => {
+            t.removeAttribute('width');
+        });
+        juizoTh.ifCons(j => {
+            const juizoIndex = j.cellIndex;
+            const colors = new Map([
+                ['A', 'black'],
+                ['B', 'green'],
+                ['C', 'red'],
+                ['D', 'brown'],
+                ['E', 'orange'],
+                ['F', 'black'],
+                ['G', 'green'],
+                ['H', 'red'],
+            ]);
+            table
+                .chain(t => List.fromArray(t.rows))
+                .filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
+                .forEach(tr => {
+                const juizoCell = tr.cells[juizoIndex];
+                const juizoText = juizoCell.textContent;
+                const juizo = juizoText[juizoText.length - 1];
+                if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
+                    juizoCell.style.color = colors.has(juizo) ? colors.get(juizo) : 'black';
+                }
+            });
+        });
+    }
 }
 function query(selector, context = document) {
     return Maybe.fromNullable(context.querySelector(selector));

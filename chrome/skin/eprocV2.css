@@ -125,14 +125,6 @@ button.infraButton.extraBuscarPreventosButton:hover {
 .extraDocumentoMemo {
 	display: none;
 }
-#txtNumProcessoPesquisaRapida[placeholder] {
-	width: 135px;
-	font-size: 1.1em;
-}
-#txtNumProcessoPesquisaRapida:-moz-placeholder {
-	font-style: italic;
-	color: gray;
-}
 a.extraLinkAcao {
 	display: inline-block;
 	padding: 3px 1px;

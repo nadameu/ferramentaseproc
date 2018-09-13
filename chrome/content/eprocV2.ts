@@ -2,12 +2,42 @@ const unsafeWindow = window.wrappedJSObject;
 
 async function main() {
 	verificarCompatibilidadeVersao();
-	mudarEstilosSeForPaginaComBarra();
+	carregarEstilosPersonalizados();
 	corrigirCamposAutoCompletar();
+	corrigirPesquisaRapida();
+	modificarTabelaProcessos();
 }
 
 class List<A> {
 	constructor(readonly fold: <B>(Nil: () => B, Cons: (head: A, tail: List<A>) => B) => B) {}
+	alt(that: List<A>): List<A> {
+		return this.isEmpty() ? that : this;
+	}
+	chain<B>(f: (_: A) => List<B>): List<B> {
+		return new List((N, C) =>
+			this.fold(N, (x, xs) =>
+				f(x)
+					.concat(xs.chain(f))
+					.fold(N, C)
+			)
+		);
+	}
+	concat(that: List<A>): List<A> {
+		return new List((N, C) => this.fold(() => that.fold(N, C), (x, xs) => C(x, xs.concat(that))));
+	}
+	count(): number {
+		return this.reduce(x => x + 1, 0);
+	}
+	filter(p: (_: A) => boolean): List<A> {
+		return new List((N, C) => this.fold(N, (x, xs) => (p(x) ? C(x, xs) : xs.filter(p).fold(N, C))));
+	}
+	filterMap<B>(f: (_: A) => Maybe<B>): List<B> {
+		return new List((N, C) =>
+			this.fold(N, (x, xs) =>
+				f(x).fold(() => xs.filterMap(f).fold(N, C), y => C(y, xs.filterMap(f)))
+			)
+		);
+	}
 	forEach(f: (_: A) => void): void {
 		let current: false | List<A> = this;
 		do {
@@ -19,6 +49,28 @@ class List<A> {
 				}
 			);
 		} while (current);
+	}
+	ifCons(f: (head: A, tail: List<A>) => void): void {
+		this.fold(() => {}, f);
+	}
+	ifNil(f: () => void): void {
+		this.fold(f, () => {});
+	}
+	isEmpty(): boolean {
+		return this.fold(() => true, () => false);
+	}
+	map<B>(f: (_: A) => B): List<B> {
+		return new List((N, C) => this.fold(N, (x, xs) => C(f(x), xs.map(f))));
+	}
+	reduce<B>(f: (acc: B, _: A) => B, seed: B) {
+		let acc = seed;
+		this.forEach(x => {
+			acc = f(acc, x);
+		});
+		return acc;
+	}
+	refine<B extends A>(p: (value: A) => value is B): List<B> {
+		return this.filter(p) as List<B>;
 	}
 	toArray(): A[] {
 		const result: A[] = [];
@@ -136,7 +188,20 @@ function corrigirCamposAutoCompletar() {
 	});
 }
 
-function mudarEstilosSeForPaginaComBarra() {
+function corrigirPesquisaRapida() {
+	query('#txtNumProcessoPesquisaRapida')
+		.refine((x: Element): x is HTMLInputElement => x.matches('input'))
+		.ifJust(pesquisaRapida => {
+			if ('placeholder' in pesquisaRapida) {
+				pesquisaRapida.setAttribute('placeholder', 'Pesquisa');
+				pesquisaRapida.removeAttribute('value');
+				pesquisaRapida.removeAttribute('style');
+				pesquisaRapida.removeAttribute('onclick');
+			}
+		});
+}
+
+function carregarEstilosPersonalizados() {
 	query('.infraBarraSistema').ifJust(() => {
 		adicionarLinkStylesheet('chrome/skin/eprocV2.css');
 		adicionarLinkStylesheet('chrome/skin/print.css', 'print');
@@ -147,6 +212,71 @@ function mudarEstilosSeForPaginaComBarra() {
 			adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`);
 		});
 	});
+}
+
+function modificarTabelaProcessos() {
+	function findTh(campo: string, texto: string) {
+		const setas = queryAll<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
+		if (setas.count() !== 1) {
+			return queryAll<HTMLTableHeaderCellElement>('th.infraTh').filter(
+				th => th.textContent === texto
+			);
+		} else {
+			return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
+		}
+	}
+	let classeTh = findTh('DesClasseJudicial', 'Classe');
+	const juizoTh = findTh('SigOrgaoJuizo', 'Ju\u00edzo');
+	let th = classeTh.alt(juizoTh);
+	if (th.isEmpty()) {
+		const tr = queryAll<HTMLTableRowElement>('tr[data-classe]');
+		if (tr.count() > 0) {
+			const table = tr.filterMap(tr => Maybe.fromNullable(tr.closest('table')));
+			classeTh = table
+				.chain(t => queryAll<HTMLTableHeaderCellElement>('th.infraTh', t))
+				.filter(th => /^Classe( Judicial)?$/.test(th.textContent || ''));
+		}
+		th = classeTh;
+	}
+	if (th.isEmpty()) {
+		classeTh = queryAll<HTMLTableHeaderCellElement>('th.infraTh').filter(th =>
+			/^Classe( Judicial)?$/.test((th.textContent || '').trim())
+		);
+		th = classeTh;
+	}
+	if (!th.isEmpty()) {
+		const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
+		table.forEach(t => {
+			t.removeAttribute('width');
+		});
+		table.chain(t => queryAll<HTMLTableHeaderCellElement>('th', t)).forEach(t => {
+			t.removeAttribute('width');
+		});
+		juizoTh.ifCons(j => {
+			const juizoIndex = j.cellIndex;
+			const colors = new Map([
+				['A', 'black'],
+				['B', 'green'],
+				['C', 'red'],
+				['D', 'brown'],
+				['E', 'orange'],
+				['F', 'black'],
+				['G', 'green'],
+				['H', 'red'],
+			]);
+			table
+				.chain(t => List.fromArray(t.rows))
+				.filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
+				.forEach(tr => {
+					const juizoCell = tr.cells[juizoIndex];
+					const juizoText = juizoCell.textContent as string;
+					const juizo = juizoText[juizoText.length - 1];
+					if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
+						juizoCell.style.color = colors.has(juizo) ? (colors.get(juizo) as string) : 'black';
+					}
+				});
+		});
+	}
 }
 
 function query<T extends Element>(selector: string, context: NodeSelector = document): Maybe<T> {
