@@ -37,7 +37,10 @@
 		"48": "chrome/skin/stapler.png",
 		"96": "chrome/skin/stapler-96.png"
 	},
-	"options_ui": { "page": "chrome/content/options.html" },
+	"options_ui": {
+		"browser_style": true,
+		"page": "chrome/content/options.html"
+	},
 	"permissions": [
 		"activeTab",
 		"storage",
