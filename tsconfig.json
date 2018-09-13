@@ -1,12 +1,11 @@
 {
 	"compilerOptions": {
-		"target": "es2016",
-		"lib": ["dom", "scripthost", "es2016"],
+		"target": "es2017",
+		"lib": ["dom", "scripthost", "es2017"],
 		"allowJs": true,
 		"checkJs": true,
-		"strictFunctionTypes": true,
+		"strict": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noImplicitAny": true
+		"noUnusedParameters": true
 	}
 }
