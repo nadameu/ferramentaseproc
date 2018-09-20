@@ -30,7 +30,7 @@
 			],
 			"exclude_globs": ["controlador.php\\?acao=acessar_documento_implementacao"],
 			"js": ["chrome/content/eprocV2.js"],
-			"run_at": "document_end"
+			"run_at": "document_start"
 		}
 	],
 	"icons": {
