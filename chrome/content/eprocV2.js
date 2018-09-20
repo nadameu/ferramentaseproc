@@ -4,11 +4,12 @@ async function main() {
     await onDocumentEnd();
     await verificarCompatibilidadeVersao();
     await carregarEstilosPersonalizados();
-    const promisePesquisa = corrigirPesquisaRapida();
-    const promiseTabela = modificarTabelaProcessos();
-    modificarPaginaEspecifica();
-    const promiseIcones = mostrarIconesNoMenuAcoes();
-    return Promise.all([promisePesquisa, promiseTabela, promiseIcones]);
+    return Promise.all([
+        corrigirPesquisaRapida(),
+        modificarTabelaProcessos(),
+        modificarPaginaEspecifica(),
+        mostrarIconesNoMenuAcoes(),
+    ]);
 }
 const Acoes = new Map([
     ['entrar', centralizarListaPerfis],
@@ -276,7 +277,7 @@ function carregarEstilosPersonalizados() {
 }
 function centralizarListaPerfis() {
     let carregado = false;
-    Preferencias.on("entrar" /* ENTRAR */, habilitada => {
+    return Preferencias.on("entrar" /* ENTRAR */, habilitada => {
         if (habilitada) {
             if (!carregado) {
                 carregado = adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
@@ -289,12 +290,21 @@ function centralizarListaPerfis() {
     });
 }
 function criarBotaoDocumentosGedpro(minutas) {
-    // TODO: implementar
+    let carregado = false;
+    return Preferencias.on("documentos-gedpro" /* DOCUMENTOS_GEDPRO */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                // TODO: implementar
+                carregado = true;
+            }
+        }
+        else if (carregado) {
+        }
+    });
 }
 function corrigirPesquisaRapida() {
     let carregado = false;
     return Preferencias.on("pesquisa-rapida" /* PESQUISA_RAPIDA */, habilitada => {
-        console.log('Pesquisa rápida', habilitada);
         if (habilitada) {
             if (!carregado) {
                 carregado = query('#txtNumProcessoPesquisaRapida')
@@ -406,6 +416,7 @@ function modificarPaginaEspecifica() {
             return fn();
         }
     }
+    return Promise.resolve();
 }
 function modificarTabelaProcessos() {
     let carregado = false;
@@ -645,11 +656,11 @@ function queryAll(selector, context = document) {
     return List.fromArray(context.querySelectorAll(selector));
 }
 function telaProcesso() {
-    query('fieldset#fldMinutas').map(criarBotaoDocumentosGedpro);
-    // TODO: último link clicado
-    // TODO: fechar todas as janelas
-    // TODO: largura da tabela de eventos
-    // TODO: eventos referidos
+    return Promise.all([
+        query('fieldset#fldMinutas')
+            .map(criarBotaoDocumentosGedpro)
+            .getOrElse(Promise.resolve()),
+    ]).then(() => { });
 }
 async function verificarCompatibilidadeVersao() {
     if (!unsafeWindow.FeP)

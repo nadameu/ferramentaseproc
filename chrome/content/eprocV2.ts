@@ -4,11 +4,12 @@ async function main() {
 	await onDocumentEnd();
 	await verificarCompatibilidadeVersao();
 	await carregarEstilosPersonalizados();
-	const promisePesquisa = corrigirPesquisaRapida();
-	const promiseTabela = modificarTabelaProcessos();
-	modificarPaginaEspecifica();
-	const promiseIcones = mostrarIconesNoMenuAcoes();
-	return Promise.all([promisePesquisa, promiseTabela, promiseIcones]);
+	return Promise.all([
+		corrigirPesquisaRapida(),
+		modificarTabelaProcessos(),
+		modificarPaginaEspecifica(),
+		mostrarIconesNoMenuAcoes(),
+	]);
 }
 
 const Acoes = new Map<string, () => Promise<void>>([
@@ -263,6 +264,10 @@ const enum PreferenciasExtensao {
 	ENTRAR = 'entrar',
 	TABELA_LOCALIZADORES = 'tabela-localizadores',
 	DOCUMENTOS_GEDPRO = 'documentos-gedpro',
+	TABELA_EVENTOS = 'tabela-eventos',
+	EVENTOS_REFERIDOS = 'eventos-referidos',
+	ULTIMO_CLICADO = 'ultimo-clicado',
+	FECHAR_JANELAS = 'fechar-janelas',
 }
 
 function adicionarEstilos(css: string) {
@@ -315,7 +320,7 @@ function carregarEstilosPersonalizados() {
 
 function centralizarListaPerfis() {
 	let carregado: false | HTMLStyleElement = false;
-	Preferencias.on(PreferenciasExtensao.ENTRAR, habilitada => {
+	return Preferencias.on(PreferenciasExtensao.ENTRAR, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
 				carregado = adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
@@ -328,7 +333,16 @@ function centralizarListaPerfis() {
 }
 
 function criarBotaoDocumentosGedpro(minutas: HTMLFieldSetElement) {
-	// TODO: implementar
+	let carregado = false;
+	return Preferencias.on(PreferenciasExtensao.DOCUMENTOS_GEDPRO, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				// TODO: implementar
+				carregado = true;
+			}
+		} else if (carregado) {
+		}
+	});
 }
 
 function corrigirPesquisaRapida() {
@@ -341,7 +355,6 @@ function corrigirPesquisaRapida() {
 				onfocus: string | null;
 		  }> = false;
 	return Preferencias.on(PreferenciasExtensao.PESQUISA_RAPIDA, habilitada => {
-		console.log('Pesquisa rápida', habilitada);
 		if (habilitada) {
 			if (!carregado) {
 				carregado = query('#txtNumProcessoPesquisaRapida')
@@ -455,17 +468,18 @@ function modificarPaginaEspecifica() {
 	if (params.has('acao')) {
 		const acao = params.get('acao') as string;
 		if (Acoes.has(acao)) {
-			const fn = Acoes.get(acao) as () => void;
+			const fn = Acoes.get(acao) as () => Promise<void>;
 			return fn();
 		}
 	}
 	if (params.has('acao_origem')) {
 		const acaoOrigem = params.get('acao_origem') as string;
 		if (AcoesOrigem.has(acaoOrigem)) {
-			const fn = AcoesOrigem.get(acaoOrigem) as () => void;
+			const fn = AcoesOrigem.get(acaoOrigem) as () => Promise<void>;
 			return fn();
 		}
 	}
+	return Promise.resolve();
 }
 
 function modificarTabelaProcessos() {
@@ -732,11 +746,15 @@ function queryAll<T extends Element>(selector: string, context: NodeSelector = d
 }
 
 function telaProcesso() {
-	query<HTMLFieldSetElement>('fieldset#fldMinutas').map(criarBotaoDocumentosGedpro);
-	// TODO: último link clicado
-	// TODO: fechar todas as janelas
-	// TODO: largura da tabela de eventos
-	// TODO: eventos referidos
+	return Promise.all([
+		query<HTMLFieldSetElement>('fieldset#fldMinutas')
+			.map(criarBotaoDocumentosGedpro)
+			.getOrElse(Promise.resolve()),
+		// TODO: último link clicado
+		// TODO: fechar todas as janelas
+		// TODO: largura da tabela de eventos
+		// TODO: eventos referidos
+	]).then(() => {});
 }
 
 async function verificarCompatibilidadeVersao() {
