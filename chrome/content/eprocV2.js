@@ -1,14 +1,24 @@
 "use strict";
 const unsafeWindow = window.wrappedJSObject;
 async function main() {
-    verificarCompatibilidadeVersao();
+    await onDocumentEnd();
+    await verificarCompatibilidadeVersao();
     await carregarEstilosPersonalizados();
-    corrigirCamposAutoCompletar();
-    corrigirPesquisaRapida();
-    modificarTabelaProcessos();
+    const promisePesquisa = corrigirPesquisaRapida();
+    const promiseTabela = modificarTabelaProcessos();
     modificarPaginaEspecifica();
-    await mostrarIconesNoMenuAcoes();
+    const promiseIcones = mostrarIconesNoMenuAcoes();
+    return Promise.all([promisePesquisa, promiseTabela, promiseIcones]);
 }
+const Acoes = new Map([
+    ['entrar', centralizarListaPerfis],
+    ['entrar_cert', centralizarListaPerfis],
+    ['usuario_tipo_monitoramento_localizador_listar', decorarTabelaMeusLocalizadores],
+    ['processo_selecionar', telaProcesso],
+]);
+const AcoesOrigem = new Map([
+    ['principal', decorarTabelaLocalizadoresPainel],
+]);
 class List {
     constructor(fold) {
         this.fold = fold;
@@ -129,6 +139,9 @@ class Maybe {
     constructor(fold) {
         this.fold = fold;
     }
+    alt(that) {
+        return this.fold(() => that, () => this);
+    }
     ap(that) {
         return that.chain(f => this.map(f));
     }
@@ -184,33 +197,44 @@ class Ordering {
         return new Ordering(0 /* EQ */);
     }
 }
-class Preferencias {
-    static on(nome, f) {
+class ServicoPreferencias {
+    constructor() {
+        this._listeners = new Map();
         browser.storage.onChanged.addListener((changes, areaName) => {
             if (areaName !== 'local')
                 return;
             const changed = Object.keys(changes);
-            if (!changed.includes(nome))
-                return;
-            Promise.resolve(f(changes[nome].newValue)).then(x => {
-                if (x)
-                    console.log(x);
-            }, err => console.error(err));
+            this._preferencias.then(preferencias => {
+                let novasPreferencias = Object.assign({}, preferencias);
+                changed.forEach(key => {
+                    const value = changes[key]
+                        .newValue;
+                    const listeners = this._listeners.get(key) || [];
+                    listeners.forEach(listener => {
+                        Promise.resolve(listener(value)).catch(err => console.error(err));
+                    });
+                    novasPreferencias[key] = value;
+                });
+                this._preferencias = Promise.resolve(novasPreferencias);
+            });
         });
-        return browser.storage.local.get({ [nome]: true }).then(obj => {
-            return f(obj[nome]);
-        });
+        this._preferencias = browser.storage.local.get();
+    }
+    async on(nome, listener) {
+        this._listeners.set(nome, (this._listeners.get(nome) || []).concat([listener]));
+        return this._preferencias
+            .then(prefs => prefs[nome])
+            .then(value => (value === undefined ? true : value))
+            .then(listener);
     }
 }
+const Preferencias = new ServicoPreferencias();
 function adicionarEstilos(css) {
-    const style = query('style#extraEstilos').getOrElseL(() => {
-        const template = document.createElement('template');
-        template.innerHTML = '<style id="extraEstilos"></style>';
-        const style = document.importNode(template.content, true).firstElementChild;
-        document.head.appendChild(style);
-        return style;
-    });
-    style.insertAdjacentText('beforeend', css);
+    const template = document.createElement('template');
+    template.innerHTML = `<style>${css}</style>`;
+    const style = document.importNode(template.content, true).firstElementChild;
+    document.head.appendChild(style);
+    return style;
 }
 function adicionarLinkStylesheet(path, media = 'screen') {
     const link = document.createElement('link');
@@ -221,9 +245,9 @@ function adicionarLinkStylesheet(path, media = 'screen') {
             link.removeEventListener('load', onload);
             link.removeEventListener('error', onerror);
         }
-        function onload(e) {
+        function onload() {
             removeListeners();
-            resolve(e);
+            resolve(link);
         }
         function onerror(e) {
             removeListeners();
@@ -251,29 +275,116 @@ function carregarEstilosPersonalizados() {
     return Promise.all(promises);
 }
 function centralizarListaPerfis() {
-    adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
-}
-function corrigirCamposAutoCompletar() {
-    queryAll('label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade').forEach(auto => {
-        const id = auto.id.replace('lblListar', 'txt');
-        query(`#${id}`)
-            .refine((x) => x.matches('input'))
-            .ifJust(auto => {
-            auto.style.width = `${auto.clientWidth}px`;
-        });
-    });
-}
-function corrigirPesquisaRapida() {
-    query('#txtNumProcessoPesquisaRapida')
-        .refine((x) => x.matches('input'))
-        .ifJust(pesquisaRapida => {
-        if ('placeholder' in pesquisaRapida) {
-            pesquisaRapida.setAttribute('placeholder', 'Pesquisa');
-            pesquisaRapida.removeAttribute('value');
-            pesquisaRapida.removeAttribute('style');
-            pesquisaRapida.removeAttribute('onclick');
+    let carregado = false;
+    Preferencias.on("entrar" /* ENTRAR */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                carregado = adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
+            }
+        }
+        else if (carregado) {
+            document.head.removeChild(carregado);
+            carregado = false;
         }
     });
+}
+function criarBotaoDocumentosGedpro(minutas) {
+    // TODO: implementar
+}
+function corrigirPesquisaRapida() {
+    let carregado = false;
+    return Preferencias.on("pesquisa-rapida" /* PESQUISA_RAPIDA */, habilitada => {
+        console.log('Pesquisa rápida', habilitada);
+        if (habilitada) {
+            if (!carregado) {
+                carregado = query('#txtNumProcessoPesquisaRapida')
+                    .refine((x) => x.matches('input'))
+                    .filter(input => 'placeholder' in input)
+                    .map(input => ({
+                    input,
+                    value: input.getAttribute('value'),
+                    style: input.getAttribute('style'),
+                    onfocus: input.getAttribute('onfocus'),
+                }));
+            }
+            carregado.ifJust(({ input }) => {
+                input.setAttribute('placeholder', 'Pesquisa');
+                input.removeAttribute('value');
+                input.setAttribute('style', 'font-size: 1.1em;');
+                input.removeAttribute('onfocus');
+            });
+        }
+        else if (carregado) {
+            carregado.ifJust(({ input, value, style, onfocus }) => {
+                input.removeAttribute('placeholder');
+                if (value) {
+                    input.setAttribute('value', value);
+                    if (input.value === '')
+                        input.value = value;
+                }
+                if (style)
+                    input.setAttribute('style', style);
+                if (onfocus)
+                    input.setAttribute('onfocus', onfocus);
+            });
+        }
+    });
+}
+function decorarTabelaLocalizadores(linhas) {
+    let carregado = false;
+    return Preferencias.on("tabela-localizadores" /* TABELA_LOCALIZADORES */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                const linhasSalvas = new Map();
+                const listeners = new Map();
+                linhas.forEach(linha => {
+                    const maybeLink = getLink(linha);
+                    const maybeURL = maybeLink.chain(getUrl);
+                    const processos = maybeLink.chain(getQtdProcessos).getOrElse(0);
+                    linhasSalvas.set(linha, processos.toString());
+                    maybeURL.map(url => {
+                        listeners.set(linha, () => (location.href = url));
+                    });
+                });
+                carregado = { linhas: linhasSalvas, listeners };
+            }
+            for (const [linha, processos] of carregado.linhas.entries()) {
+                linha.classList.add('extraLocalizador');
+                linha.setAttribute('data-processos', processos);
+            }
+            for (const [linha, listener] of carregado.listeners.entries()) {
+                linha.addEventListener('click', listener);
+            }
+        }
+        else if (carregado) {
+            for (const linha of carregado.linhas.keys()) {
+                linha.classList.remove('extraLocalizador');
+                linha.removeAttribute('data-processos');
+            }
+            for (const [linha, listener] of carregado.listeners.entries()) {
+                linha.removeEventListener('click', listener);
+            }
+        }
+    });
+    function getLink(tr) {
+        return Maybe.fromNullable(tr.cells[1]).chain(cell => query('a', cell));
+    }
+    function getUrl(a) {
+        return Maybe.fromNullable(a.href)
+            .filter(x => x !== '')
+            .alt(Maybe.fromNullable(a.getAttribute('onclick')).map(onclick => `javascript:${onclick}`));
+    }
+    function getQtdProcessos(a) {
+        return Maybe.fromNullable(a.textContent)
+            .map(Number)
+            .filter(x => !isNaN(x));
+    }
+}
+function decorarTabelaLocalizadoresPainel() {
+    return decorarTabelaLocalizadores(queryAll('#fldProcessos tr[class^="infraTr"], #fldLocalizadores tr[class^="infraTr"]'));
+}
+function decorarTabelaMeusLocalizadores() {
+    return decorarTabelaLocalizadores(queryAll('#divInfraAreaTabela tr[class^="infraTr"]'));
 }
 function liftA2(ax, ay, f) {
     return ay.ap(ax.map((x) => (y) => f(x, y)));
@@ -297,6 +408,75 @@ function modificarPaginaEspecifica() {
     }
 }
 function modificarTabelaProcessos() {
+    let carregado = false;
+    return Preferencias.on("tabela-processos" /* TABELA_PROCESSOS */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                const cores = new Map();
+                const larguras = new Map();
+                const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
+                const th = encontrarTH('DesClasseJudicial', 'Classe')
+                    .alt(juizoTh)
+                    .altL(() => queryAll('tr[data-classe]')
+                    .limit(1)
+                    .filterMap(tr => Maybe.fromNullable(tr.closest('table')))
+                    .chain(obterTHsValidos))
+                    .altL(() => obterTHsValidos());
+                if (!th.isEmpty()) {
+                    const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
+                    table.forEach(tbl => {
+                        larguras.set(tbl, tbl.getAttribute('width'));
+                    });
+                    table.chain(tbl => queryAll('th', tbl)).forEach(th => {
+                        larguras.set(th, th.getAttribute('width'));
+                    });
+                    juizoTh.ifCons(jzo => {
+                        const juizoIndex = jzo.cellIndex;
+                        const colors = new Map([
+                            ['A', 'black'],
+                            ['B', 'green'],
+                            ['C', 'red'],
+                            ['D', 'brown'],
+                            ['E', 'orange'],
+                            ['F', 'black'],
+                            ['G', 'green'],
+                            ['H', 'red'],
+                        ]);
+                        table
+                            .chain(tbl => List.fromArray(tbl.rows))
+                            .filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
+                            .forEach(tr => {
+                            const juizoCell = tr.cells[juizoIndex];
+                            const juizoText = juizoCell.textContent || '_';
+                            const juizo = juizoText[juizoText.length - 1];
+                            if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
+                                cores.set(juizoCell, {
+                                    original: juizoCell.style.color,
+                                    nova: Maybe.fromNullable(colors.get(juizo)).getOrElse('black'),
+                                });
+                            }
+                        });
+                    });
+                }
+                carregado = { cores, larguras };
+            }
+            for (const elt of carregado.larguras.keys()) {
+                elt.removeAttribute('width');
+            }
+            for (const [elt, cor] of carregado.cores.entries()) {
+                elt.style.color = cor.nova;
+            }
+        }
+        else if (carregado) {
+            for (const [elt, largura] of carregado.larguras.entries()) {
+                if (largura)
+                    elt.setAttribute('width', largura);
+            }
+            for (const [elt, cor] of carregado.cores.entries()) {
+                elt.style.color = cor.original;
+            }
+        }
+    });
     function encontrarTH(campo, texto) {
         const setas = queryAll(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
         if (setas.count() === 1) {
@@ -309,47 +489,6 @@ function modificarTabelaProcessos() {
     function obterTHsValidos(context = document) {
         return queryAll('th.infraTh', context).filter(th => /^Classe( Judicial)?$/.test((th.textContent || '').trim()));
     }
-    const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
-    let th = encontrarTH('DesClasseJudicial', 'Classe')
-        .alt(juizoTh)
-        .altL(() => queryAll('tr[data-classe]')
-        .limit(1)
-        .filterMap(tr => Maybe.fromNullable(tr.closest('table')))
-        .chain(obterTHsValidos))
-        .altL(() => obterTHsValidos());
-    if (!th.isEmpty()) {
-        const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-        table.forEach(tbl => {
-            tbl.removeAttribute('width');
-        });
-        table.chain(tbl => queryAll('th', tbl)).forEach(th => {
-            th.removeAttribute('width');
-        });
-        juizoTh.ifCons(jzo => {
-            const juizoIndex = jzo.cellIndex;
-            const colors = new Map([
-                ['A', 'black'],
-                ['B', 'green'],
-                ['C', 'red'],
-                ['D', 'brown'],
-                ['E', 'orange'],
-                ['F', 'black'],
-                ['G', 'green'],
-                ['H', 'red'],
-            ]);
-            table
-                .chain(tbl => List.fromArray(tbl.rows))
-                .filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
-                .forEach(tr => {
-                const juizoCell = tr.cells[juizoIndex];
-                const juizoText = juizoCell.textContent || '_';
-                const juizo = juizoText[juizoText.length - 1];
-                if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
-                    juizoCell.style.color = colors.has(juizo) ? colors.get(juizo) : 'black';
-                }
-            });
-        });
-    }
 }
 function mostrarIconesNoMenuAcoes() {
     const maybeFieldset = query('fieldset#fldAcoes');
@@ -358,7 +497,7 @@ function mostrarIconesNoMenuAcoes() {
         const acoes = queryAll(':scope > center a', fieldset);
         if (acoes.isEmpty())
             return [];
-        const botoesNoMenuAcoes = obterPreferenciaEproc(5 /* BOTOES_NO_MENU_ACOES */).getOrElse(acoes.every(acao => acao.classList.contains('infraButton')));
+        const botoesNoMenuAcoes = acoes.every(acao => acao.classList.contains('infraButton'));
         if (!botoesNoMenuAcoes)
             return [];
         const template = document.createElement('template');
@@ -462,10 +601,38 @@ function mostrarIconesNoMenuAcoes() {
         });
     }).getOrElse(Promise.resolve([]));
 }
-function obterPreferenciaEproc(num) {
-    return Maybe.fromNullable(window.wrappedJSObject.localStorage.getItem(`ch${num}`))
-        .refine((x) => /^[SN]$/.test(x))
-        .map(x => x === 'S');
+function onDocumentStart() {
+    return Promise.resolve();
+}
+function onDocumentEnd() {
+    return new Promise(res => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('readystatechange', checkState);
+        }
+        else {
+            checkState();
+        }
+        function checkState() {
+            if (['interactive', 'complete'].includes(document.readyState)) {
+                res();
+            }
+        }
+    });
+}
+function onDocumentIdle() {
+    return new Promise(res => {
+        if (['loading', 'interactive'].includes(document.readyState)) {
+            document.addEventListener('readystatechange', checkState);
+        }
+        else {
+            checkState();
+        }
+        function checkState() {
+            if (document.readyState === 'complete') {
+                res();
+            }
+        }
+    });
 }
 async function obterPreferenciaExtensao(nome, valorPadrao) {
     const result = await browser.storage.local.get({ [nome]: valorPadrao });
@@ -477,7 +644,14 @@ function query(selector, context = document) {
 function queryAll(selector, context = document) {
     return List.fromArray(context.querySelectorAll(selector));
 }
-function verificarCompatibilidadeVersao() {
+function telaProcesso() {
+    query('fieldset#fldMinutas').map(criarBotaoDocumentosGedpro);
+    // TODO: último link clicado
+    // TODO: fechar todas as janelas
+    // TODO: largura da tabela de eventos
+    // TODO: eventos referidos
+}
+async function verificarCompatibilidadeVersao() {
     if (!unsafeWindow.FeP)
         return;
     const numeroVersaoCompativel = unsafeWindow.FeP.numeroVersaoCompativel;
@@ -496,11 +670,6 @@ function verificarCompatibilidadeVersao() {
         throw new Error('Extensão é incompatível com a versão atual do e-Proc.');
     }
 }
-const Acoes = new Map([
-    ['entrar', centralizarListaPerfis],
-    ['entrar_cert', centralizarListaPerfis],
-]);
-const AcoesOrigem = new Map();
 main().then(x => {
     if (x) {
         console.log(x);

@@ -1,14 +1,26 @@
 const unsafeWindow = window.wrappedJSObject;
 
 async function main() {
-	verificarCompatibilidadeVersao();
+	await onDocumentEnd();
+	await verificarCompatibilidadeVersao();
 	await carregarEstilosPersonalizados();
-	corrigirCamposAutoCompletar();
-	corrigirPesquisaRapida();
-	modificarTabelaProcessos();
+	const promisePesquisa = corrigirPesquisaRapida();
+	const promiseTabela = modificarTabelaProcessos();
 	modificarPaginaEspecifica();
-	await mostrarIconesNoMenuAcoes();
+	const promiseIcones = mostrarIconesNoMenuAcoes();
+	return Promise.all([promisePesquisa, promiseTabela, promiseIcones]);
 }
+
+const Acoes = new Map<string, () => Promise<void>>([
+	['entrar', centralizarListaPerfis],
+	['entrar_cert', centralizarListaPerfis],
+	['usuario_tipo_monitoramento_localizador_listar', decorarTabelaMeusLocalizadores],
+	['processo_selecionar', telaProcesso],
+]);
+
+const AcoesOrigem = new Map<string, () => Promise<void>>([
+	['principal', decorarTabelaLocalizadoresPainel],
+]);
 
 interface Apply<A> {
 	ap<B>(that: Apply<(_: A) => B>): Apply<B>;
@@ -144,6 +156,9 @@ class List<A> {
 
 class Maybe<A> {
 	constructor(readonly fold: <B>(Nothing: () => B, Just: (_: A) => B) => B) {}
+	alt(that: Maybe<A>): Maybe<A> {
+		return this.fold(() => that, () => this);
+	}
 	ap<B>(that: Maybe<(_: A) => B>): Maybe<B> {
 		return that.chain(f => this.map(f));
 	}
@@ -207,61 +222,69 @@ class Ordering {
 	}
 }
 
-class Preferencias {
-	static on<T>(nome: PreferenciasExtensao, f: (_: boolean) => T | Promise<T>): Promise<T> {
+class ServicoPreferencias {
+	private _preferencias: Promise<{ [k in PreferenciasExtensao]: boolean | undefined }>;
+	private _listeners = new Map<PreferenciasExtensao, ((_: boolean) => any)[]>();
+	constructor() {
 		browser.storage.onChanged.addListener((changes, areaName) => {
 			if (areaName !== 'local') return;
-			const changed = Object.keys(changes);
-			if (!changed.includes(nome)) return;
-			Promise.resolve(f(((changes as any)[nome] as browser.storage.StorageChange).newValue)).then(
-				x => {
-					if (x) console.log(x);
-				},
-				err => console.error(err)
-			);
+			const changed = Object.keys(changes) as (PreferenciasExtensao)[];
+			this._preferencias.then(preferencias => {
+				let novasPreferencias = Object.assign({}, preferencias);
+				changed.forEach(key => {
+					const value = ((changes as any)[key] as browser.storage.StorageChange)
+						.newValue as boolean;
+					const listeners = this._listeners.get(key) || [];
+					listeners.forEach(listener => {
+						Promise.resolve(listener(value)).catch(err => console.error(err));
+					});
+					novasPreferencias[key] = value;
+				});
+				this._preferencias = Promise.resolve(novasPreferencias);
+			});
 		});
-		return browser.storage.local.get({ [nome]: true }).then(obj => {
-			return f(obj[nome]);
-		});
+		this._preferencias = browser.storage.local.get();
+	}
+	async on<T>(nome: PreferenciasExtensao, listener: (_: boolean) => T | Promise<T>): Promise<T> {
+		this._listeners.set(nome, (this._listeners.get(nome) || []).concat([listener]));
+		return this._preferencias
+			.then(prefs => prefs[nome])
+			.then(value => (value === undefined ? true : value))
+			.then(listener);
 	}
 }
 
-const enum PreferenciasEproc {
-	BOTOES_NO_MENU_ACOES = 5,
-}
+const Preferencias = new ServicoPreferencias();
 
 const enum PreferenciasExtensao {
-	ESTILOS = 'estilos',
-	AUTOCOMPLETAR = 'autocompletar',
 	PESQUISA_RAPIDA = 'pesquisa-rapida',
 	TABELA_PROCESSOS = 'tabela-processos',
 	ICONES_ACOES = 'icones-acoes',
 	ENTRAR = 'entrar',
+	TABELA_LOCALIZADORES = 'tabela-localizadores',
+	DOCUMENTOS_GEDPRO = 'documentos-gedpro',
 }
 
 function adicionarEstilos(css: string) {
-	const style = query<HTMLStyleElement>('style#extraEstilos').getOrElseL(() => {
-		const template = document.createElement('template');
-		template.innerHTML = '<style id="extraEstilos"></style>';
-		const style = document.importNode(template.content, true).firstElementChild as HTMLStyleElement;
-		document.head.appendChild(style);
-		return style;
-	});
-	style.insertAdjacentText('beforeend', css);
+	const template = document.createElement('template');
+	template.innerHTML = `<style>${css}</style>`;
+	const style = document.importNode(template.content, true).firstElementChild as HTMLStyleElement;
+	document.head.appendChild(style);
+	return style;
 }
 
 function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'screen') {
 	const link = document.createElement('link');
 	link.rel = 'stylesheet';
 	link.media = media;
-	const promise = new Promise<Event>((resolve, reject) => {
+	const promise = new Promise<HTMLLinkElement>((resolve, reject) => {
 		function removeListeners() {
 			link.removeEventListener('load', onload);
 			link.removeEventListener('error', onerror);
 		}
-		function onload(e: Event) {
+		function onload() {
 			removeListeners();
-			resolve(e);
+			resolve(link);
 		}
 		function onerror(e: Event) {
 			removeListeners();
@@ -276,14 +299,14 @@ function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'scre
 }
 
 function carregarEstilosPersonalizados() {
-	const promises: Promise<any>[] = [];
+	const promises: Promise<HTMLLinkElement>[] = [];
 	query('.infraBarraSistema').ifJust(() => {
 		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
 		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
 		query<HTMLLinkElement>('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
 			const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href) as RegExpExecArray;
 			const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
-			const skin = skins.has(result[1]) ? skins.get(result[1]) : 'stock';
+			const skin = skins.has(result[1]) ? (skins.get(result[1]) as string) : 'stock';
 			promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
 		});
 	});
@@ -291,33 +314,134 @@ function carregarEstilosPersonalizados() {
 }
 
 function centralizarListaPerfis() {
-	adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
-}
-
-function corrigirCamposAutoCompletar() {
-	queryAll(
-		'label[onclick^="listarTodos"], label[onclick^="listarEventos"], #txtEntidade, #txtPessoaEntidade'
-	).forEach(auto => {
-		const id = auto.id.replace('lblListar', 'txt');
-		query(`#${id}`)
-			.refine((x: Element): x is HTMLInputElement => x.matches('input'))
-			.ifJust(auto => {
-				auto.style.width = `${auto.clientWidth}px`;
-			});
+	let carregado: false | HTMLStyleElement = false;
+	Preferencias.on(PreferenciasExtensao.ENTRAR, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				carregado = adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
+			}
+		} else if (carregado) {
+			document.head.removeChild(carregado);
+			carregado = false;
+		}
 	});
 }
 
+function criarBotaoDocumentosGedpro(minutas: HTMLFieldSetElement) {
+	// TODO: implementar
+}
+
 function corrigirPesquisaRapida() {
-	query('#txtNumProcessoPesquisaRapida')
-		.refine((x: Element): x is HTMLInputElement => x.matches('input'))
-		.ifJust(pesquisaRapida => {
-			if ('placeholder' in pesquisaRapida) {
-				pesquisaRapida.setAttribute('placeholder', 'Pesquisa');
-				pesquisaRapida.removeAttribute('value');
-				pesquisaRapida.removeAttribute('style');
-				pesquisaRapida.removeAttribute('onclick');
+	let carregado:
+		| false
+		| Maybe<{
+				input: HTMLInputElement;
+				value: string | null;
+				style: string | null;
+				onfocus: string | null;
+		  }> = false;
+	return Preferencias.on(PreferenciasExtensao.PESQUISA_RAPIDA, habilitada => {
+		console.log('Pesquisa rápida', habilitada);
+		if (habilitada) {
+			if (!carregado) {
+				carregado = query('#txtNumProcessoPesquisaRapida')
+					.refine((x: Element): x is HTMLInputElement => x.matches('input'))
+					.filter(input => 'placeholder' in input)
+					.map(input => ({
+						input,
+						value: input.getAttribute('value'),
+						style: input.getAttribute('style'),
+						onfocus: input.getAttribute('onfocus'),
+					}));
 			}
-		});
+			carregado.ifJust(({ input }) => {
+				input.setAttribute('placeholder', 'Pesquisa');
+				input.removeAttribute('value');
+				input.setAttribute('style', 'font-size: 1.1em;');
+				input.removeAttribute('onfocus');
+			});
+		} else if (carregado) {
+			carregado.ifJust(({ input, value, style, onfocus }) => {
+				input.removeAttribute('placeholder');
+				if (value) {
+					input.setAttribute('value', value);
+					if (input.value === '') input.value = value;
+				}
+				if (style) input.setAttribute('style', style);
+				if (onfocus) input.setAttribute('onfocus', onfocus);
+			});
+		}
+	});
+}
+
+function decorarTabelaLocalizadores(linhas: List<HTMLTableRowElement>) {
+	let carregado:
+		| false
+		| {
+				linhas: Map<HTMLTableRowElement, string>;
+				listeners: Map<HTMLTableRowElement, () => void>;
+		  } = false;
+	return Preferencias.on(PreferenciasExtensao.TABELA_LOCALIZADORES, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				const linhasSalvas = new Map<HTMLTableRowElement, string>();
+				const listeners = new Map<HTMLTableRowElement, () => void>();
+				linhas.forEach(linha => {
+					const maybeLink = getLink(linha);
+					const maybeURL = maybeLink.chain(getUrl);
+					const processos = maybeLink.chain(getQtdProcessos).getOrElse(0);
+					linhasSalvas.set(linha, processos.toString());
+					maybeURL.map(url => {
+						listeners.set(linha, () => (location.href = url));
+					});
+				});
+				carregado = { linhas: linhasSalvas, listeners };
+			}
+			for (const [linha, processos] of carregado.linhas.entries()) {
+				linha.classList.add('extraLocalizador');
+				linha.setAttribute('data-processos', processos);
+			}
+			for (const [linha, listener] of carregado.listeners.entries()) {
+				linha.addEventListener('click', listener);
+			}
+		} else if (carregado) {
+			for (const linha of carregado.linhas.keys()) {
+				linha.classList.remove('extraLocalizador');
+				linha.removeAttribute('data-processos');
+			}
+			for (const [linha, listener] of carregado.listeners.entries()) {
+				linha.removeEventListener('click', listener);
+			}
+		}
+	});
+
+	function getLink(tr: HTMLTableRowElement) {
+		return Maybe.fromNullable(tr.cells[1]).chain(cell => query<HTMLAnchorElement>('a', cell));
+	}
+
+	function getUrl(a: HTMLAnchorElement) {
+		return Maybe.fromNullable(a.href)
+			.filter(x => x !== '')
+			.alt(Maybe.fromNullable(a.getAttribute('onclick')).map(onclick => `javascript:${onclick}`));
+	}
+
+	function getQtdProcessos(a: HTMLAnchorElement) {
+		return Maybe.fromNullable(a.textContent)
+			.map(Number)
+			.filter(x => !isNaN(x));
+	}
+}
+
+function decorarTabelaLocalizadoresPainel() {
+	return decorarTabelaLocalizadores(
+		queryAll('#fldProcessos tr[class^="infraTr"], #fldLocalizadores tr[class^="infraTr"]')
+	);
+}
+
+function decorarTabelaMeusLocalizadores() {
+	return decorarTabelaLocalizadores(
+		queryAll<HTMLTableRowElement>('#divInfraAreaTabela tr[class^="infraTr"]')
+	);
 }
 
 function liftA2<A, B, C>(mx: Maybe<A>, my: Maybe<B>, f: (x: A, y: B) => C): Maybe<C>;
@@ -345,6 +469,81 @@ function modificarPaginaEspecifica() {
 }
 
 function modificarTabelaProcessos() {
+	let carregado:
+		| false
+		| {
+				cores: Map<HTMLElement, { original: string | null; nova: string }>;
+				larguras: Map<HTMLElement, string | null>;
+		  } = false;
+	return Preferencias.on(PreferenciasExtensao.TABELA_PROCESSOS, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				const cores = new Map<HTMLElement, { original: string | null; nova: string }>();
+				const larguras = new Map<HTMLElement, string | null>();
+				const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
+				const th = encontrarTH('DesClasseJudicial', 'Classe')
+					.alt(juizoTh)
+					.altL(() =>
+						queryAll<HTMLTableRowElement>('tr[data-classe]')
+							.limit(1)
+							.filterMap(tr => Maybe.fromNullable(tr.closest('table')))
+							.chain(obterTHsValidos)
+					)
+					.altL(() => obterTHsValidos());
+				if (!th.isEmpty()) {
+					const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
+					table.forEach(tbl => {
+						larguras.set(tbl, tbl.getAttribute('width'));
+					});
+					table.chain(tbl => queryAll<HTMLTableHeaderCellElement>('th', tbl)).forEach(th => {
+						larguras.set(th, th.getAttribute('width'));
+					});
+					juizoTh.ifCons(jzo => {
+						const juizoIndex = jzo.cellIndex;
+						const colors = new Map([
+							['A', 'black'],
+							['B', 'green'],
+							['C', 'red'],
+							['D', 'brown'],
+							['E', 'orange'],
+							['F', 'black'],
+							['G', 'green'],
+							['H', 'red'],
+						]);
+						table
+							.chain(tbl => List.fromArray(tbl.rows))
+							.filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
+							.forEach(tr => {
+								const juizoCell = tr.cells[juizoIndex];
+								const juizoText = juizoCell.textContent || '_';
+								const juizo = juizoText[juizoText.length - 1];
+								if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
+									cores.set(juizoCell, {
+										original: juizoCell.style.color,
+										nova: Maybe.fromNullable(colors.get(juizo)).getOrElse('black'),
+									});
+								}
+							});
+					});
+				}
+				carregado = { cores, larguras };
+			}
+			for (const elt of carregado.larguras.keys()) {
+				elt.removeAttribute('width');
+			}
+			for (const [elt, cor] of carregado.cores.entries()) {
+				elt.style.color = cor.nova;
+			}
+		} else if (carregado) {
+			for (const [elt, largura] of carregado.larguras.entries()) {
+				if (largura) elt.setAttribute('width', largura);
+			}
+			for (const [elt, cor] of carregado.cores.entries()) {
+				elt.style.color = cor.original;
+			}
+		}
+	});
+
 	function encontrarTH(campo: string, texto: string) {
 		const setas = queryAll<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
 		if (setas.count() === 1) {
@@ -360,49 +559,6 @@ function modificarTabelaProcessos() {
 			/^Classe( Judicial)?$/.test((th.textContent || '').trim())
 		);
 	}
-	const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
-	let th = encontrarTH('DesClasseJudicial', 'Classe')
-		.alt(juizoTh)
-		.altL(() =>
-			queryAll<HTMLTableRowElement>('tr[data-classe]')
-				.limit(1)
-				.filterMap(tr => Maybe.fromNullable(tr.closest('table')))
-				.chain(obterTHsValidos)
-		)
-		.altL(() => obterTHsValidos());
-	if (!th.isEmpty()) {
-		const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-		table.forEach(tbl => {
-			tbl.removeAttribute('width');
-		});
-		table.chain(tbl => queryAll<HTMLTableHeaderCellElement>('th', tbl)).forEach(th => {
-			th.removeAttribute('width');
-		});
-		juizoTh.ifCons(jzo => {
-			const juizoIndex = jzo.cellIndex;
-			const colors = new Map([
-				['A', 'black'],
-				['B', 'green'],
-				['C', 'red'],
-				['D', 'brown'],
-				['E', 'orange'],
-				['F', 'black'],
-				['G', 'green'],
-				['H', 'red'],
-			]);
-			table
-				.chain(tbl => List.fromArray(tbl.rows))
-				.filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
-				.forEach(tr => {
-					const juizoCell = tr.cells[juizoIndex];
-					const juizoText = juizoCell.textContent || '_';
-					const juizo = juizoText[juizoText.length - 1];
-					if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
-						juizoCell.style.color = colors.has(juizo) ? (colors.get(juizo) as string) : 'black';
-					}
-				});
-		});
-	}
 }
 
 function mostrarIconesNoMenuAcoes() {
@@ -414,9 +570,7 @@ function mostrarIconesNoMenuAcoes() {
 		const acoes = queryAll<HTMLAnchorElement>(':scope > center a', fieldset);
 		if (acoes.isEmpty()) return [];
 
-		const botoesNoMenuAcoes = obterPreferenciaEproc(
-			PreferenciasEproc.BOTOES_NO_MENU_ACOES
-		).getOrElse(acoes.every(acao => acao.classList.contains('infraButton')));
+		const botoesNoMenuAcoes = acoes.every(acao => acao.classList.contains('infraButton'));
 		if (!botoesNoMenuAcoes) return [];
 
 		const template = document.createElement('template');
@@ -528,10 +682,40 @@ function mostrarIconesNoMenuAcoes() {
 	}).getOrElse(Promise.resolve([]));
 }
 
-function obterPreferenciaEproc(num: PreferenciasEproc): Maybe<boolean> {
-	return Maybe.fromNullable(window.wrappedJSObject.localStorage.getItem(`ch${num}`))
-		.refine((x): x is 'S' | 'N' => /^[SN]$/.test(x))
-		.map(x => x === 'S');
+function onDocumentStart() {
+	return Promise.resolve();
+}
+
+function onDocumentEnd() {
+	return new Promise(res => {
+		if (document.readyState === 'loading') {
+			document.addEventListener('readystatechange', checkState);
+		} else {
+			checkState();
+		}
+
+		function checkState() {
+			if (['interactive', 'complete'].includes(document.readyState)) {
+				res();
+			}
+		}
+	});
+}
+
+function onDocumentIdle() {
+	return new Promise(res => {
+		if (['loading', 'interactive'].includes(document.readyState)) {
+			document.addEventListener('readystatechange', checkState);
+		} else {
+			checkState();
+		}
+
+		function checkState() {
+			if (document.readyState === 'complete') {
+				res();
+			}
+		}
+	});
 }
 
 async function obterPreferenciaExtensao<T>(nome: string, valorPadrao: T): Promise<T> {
@@ -547,7 +731,15 @@ function queryAll<T extends Element>(selector: string, context: NodeSelector = d
 	return List.fromArray(context.querySelectorAll<T>(selector));
 }
 
-function verificarCompatibilidadeVersao() {
+function telaProcesso() {
+	query<HTMLFieldSetElement>('fieldset#fldMinutas').map(criarBotaoDocumentosGedpro);
+	// TODO: último link clicado
+	// TODO: fechar todas as janelas
+	// TODO: largura da tabela de eventos
+	// TODO: eventos referidos
+}
+
+async function verificarCompatibilidadeVersao() {
 	if (!unsafeWindow.FeP) return;
 	const numeroVersaoCompativel = unsafeWindow.FeP.numeroVersaoCompativel;
 	const numeroVersaoInstalada = browser.runtime.getManifest().version;
@@ -568,12 +760,6 @@ function verificarCompatibilidadeVersao() {
 		throw new Error('Extensão é incompatível com a versão atual do e-Proc.');
 	}
 }
-
-const Acoes = new Map<string, () => void>([
-	['entrar', centralizarListaPerfis],
-	['entrar_cert', centralizarListaPerfis],
-]);
-const AcoesOrigem = new Map<string, () => void>();
 
 main().then(
 	x => {
