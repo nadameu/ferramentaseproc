@@ -4,8 +4,8 @@
 	"description": "Complemento para o Firefox \"Ferramentas e-Proc\"",
 	"main": "background.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"web-ext": "web-ext"
+		"build": "web-ext build",
+		"start": "web-ext run"
 	},
 	"repository": {
 		"type": "git",
