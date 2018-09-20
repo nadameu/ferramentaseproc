@@ -1,6 +1,9 @@
 .noscreen {
 	display: none;
 }
+#txtNumProcessoPesquisaRapida::-moz-placeholder {
+	font-style: italic;
+}
 a img {
 	border: none;
 }
@@ -182,7 +185,8 @@ a.extraLinkAcao:hover {
 tr.extraLocalizador[data-processos] {
 	cursor: pointer;
 }
-tr.extraLocalizador[data-processos='0'] {
+tr.extraLocalizador[data-processos='0'],
+tr.extraLocalizador[data-processos='0'] u {
 	cursor: default;
 }
 tr.extraLocalizador[data-processos] a,
