@@ -289,9 +289,25 @@ function centralizarListaPerfis() {
         }
     });
 }
-function criarBotaoDocumentosGedpro(minutas) {
+function closest(selector) {
+    return (element) => Maybe.fromNullable(element.closest(selector));
+}
+function complementarEventosReferidos() {
     let carregado = false;
-    return Preferencias.on("documentos-gedpro" /* DOCUMENTOS_GEDPRO */, habilitada => {
+    return Preferencias.on("eventos-referidos" /* EVENTOS_REFERIDOS */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                // TODO: implementar
+                carregado = true;
+            }
+        }
+        else if (carregado) {
+        }
+    });
+}
+function corrigirColunasTabelaEventos() {
+    let carregado = false;
+    return Preferencias.on("tabela-eventos" /* TABELA_EVENTOS */, habilitada => {
         if (habilitada) {
             if (!carregado) {
                 // TODO: implementar
@@ -337,6 +353,20 @@ function corrigirPesquisaRapida() {
                 if (onfocus)
                     input.setAttribute('onfocus', onfocus);
             });
+        }
+    });
+}
+function criarBotaoDocumentosGedpro() {
+    let carregado = false;
+    return Preferencias.on("documentos-gedpro" /* DOCUMENTOS_GEDPRO */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                // TODO: implementar
+                const maybeMinutas = query('fieldset#fldMinutas');
+                carregado = true;
+            }
+        }
+        else if (carregado) {
         }
     });
 }
@@ -396,6 +426,19 @@ function decorarTabelaLocalizadoresPainel() {
 function decorarTabelaMeusLocalizadores() {
     return decorarTabelaLocalizadores(queryAll('#divInfraAreaTabela tr[class^="infraTr"]'));
 }
+function destacarUltimoLinkClicado() {
+    let carregado = false;
+    return Preferencias.on("ultimo-clicado" /* ULTIMO_CLICADO */, habilitada => {
+        if (habilitada) {
+            if (!carregado) {
+                // TODO: implementar
+                carregado = true;
+            }
+        }
+        else if (carregado) {
+        }
+    });
+}
 function liftA2(ax, ay, f) {
     return ay.ap(ax.map((x) => (y) => f(x, y)));
 }
@@ -423,83 +466,27 @@ function modificarTabelaProcessos() {
     return Preferencias.on("tabela-processos" /* TABELA_PROCESSOS */, habilitada => {
         if (habilitada) {
             if (!carregado) {
-                const cores = new Map();
-                const larguras = new Map();
-                const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
-                const th = encontrarTH('DesClasseJudicial', 'Classe')
-                    .alt(juizoTh)
-                    .altL(() => queryAll('tr[data-classe]')
+                const table = queryAll(`a[onclick="infraAcaoOrdenar('NumProcesso','ASC');"]`)
+                    .filterMap(closest('th'))
+                    .altL(() => queryAll('tr[data-classe]'))
                     .limit(1)
-                    .filterMap(tr => Maybe.fromNullable(tr.closest('table')))
-                    .chain(obterTHsValidos))
-                    .altL(() => obterTHsValidos());
-                if (!th.isEmpty()) {
-                    const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-                    table.forEach(tbl => {
-                        larguras.set(tbl, tbl.getAttribute('width'));
-                    });
-                    table.chain(tbl => queryAll('th', tbl)).forEach(th => {
-                        larguras.set(th, th.getAttribute('width'));
-                    });
-                    juizoTh.ifCons(jzo => {
-                        const juizoIndex = jzo.cellIndex;
-                        const colors = new Map([
-                            ['A', 'black'],
-                            ['B', 'green'],
-                            ['C', 'red'],
-                            ['D', 'brown'],
-                            ['E', 'orange'],
-                            ['F', 'black'],
-                            ['G', 'green'],
-                            ['H', 'red'],
-                        ]);
-                        table
-                            .chain(tbl => List.fromArray(tbl.rows))
-                            .filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
-                            .forEach(tr => {
-                            const juizoCell = tr.cells[juizoIndex];
-                            const juizoText = juizoCell.textContent || '_';
-                            const juizo = juizoText[juizoText.length - 1];
-                            if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
-                                cores.set(juizoCell, {
-                                    original: juizoCell.style.color,
-                                    nova: Maybe.fromNullable(colors.get(juizo)).getOrElse('black'),
-                                });
-                            }
-                        });
-                    });
-                }
-                carregado = { cores, larguras };
+                    .filterMap(closest('table'));
+                carregado = new Map(table
+                    .concat(table.chain(tbl => queryAll('th', tbl)))
+                    .map(elt => [elt, elt.getAttribute('width')])
+                    .toArray());
             }
-            for (const elt of carregado.larguras.keys()) {
+            for (const elt of carregado.keys()) {
                 elt.removeAttribute('width');
-            }
-            for (const [elt, cor] of carregado.cores.entries()) {
-                elt.style.color = cor.nova;
             }
         }
         else if (carregado) {
-            for (const [elt, largura] of carregado.larguras.entries()) {
+            for (const [elt, largura] of carregado.entries()) {
                 if (largura)
                     elt.setAttribute('width', largura);
             }
-            for (const [elt, cor] of carregado.cores.entries()) {
-                elt.style.color = cor.original;
-            }
         }
     });
-    function encontrarTH(campo, texto) {
-        const setas = queryAll(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
-        if (setas.count() === 1) {
-            return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
-        }
-        else {
-            return queryAll('th.infraTh').filter(th => th.textContent === texto);
-        }
-    }
-    function obterTHsValidos(context = document) {
-        return queryAll('th.infraTh', context).filter(th => /^Classe( Judicial)?$/.test((th.textContent || '').trim()));
-    }
 }
 function mostrarIconesNoMenuAcoes() {
     const maybeFieldset = query('fieldset#fldAcoes');
@@ -657,9 +644,11 @@ function queryAll(selector, context = document) {
 }
 function telaProcesso() {
     return Promise.all([
-        query('fieldset#fldMinutas')
-            .map(criarBotaoDocumentosGedpro)
-            .getOrElse(Promise.resolve()),
+        criarBotaoDocumentosGedpro(),
+        destacarUltimoLinkClicado(),
+        // TODO: fechar todas as janelas
+        corrigirColunasTabelaEventos(),
+        complementarEventosReferidos(),
     ]).then(() => { });
 }
 async function verificarCompatibilidadeVersao() {

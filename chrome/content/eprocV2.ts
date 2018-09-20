@@ -332,9 +332,30 @@ function centralizarListaPerfis() {
 	});
 }
 
-function criarBotaoDocumentosGedpro(minutas: HTMLFieldSetElement) {
+function closest<K extends keyof HTMLElementTagNameMap>(
+	selector: K
+): (element: Element) => Maybe<HTMLElementTagNameMap[K]>;
+function closest<T extends Element>(selector: string): (element: Element) => Maybe<T>;
+function closest(selector: string) {
+	return (element: Element) => Maybe.fromNullable(element.closest(selector));
+}
+
+function complementarEventosReferidos() {
 	let carregado = false;
-	return Preferencias.on(PreferenciasExtensao.DOCUMENTOS_GEDPRO, habilitada => {
+	return Preferencias.on(PreferenciasExtensao.EVENTOS_REFERIDOS, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				// TODO: implementar
+				carregado = true;
+			}
+		} else if (carregado) {
+		}
+	});
+}
+
+function corrigirColunasTabelaEventos() {
+	let carregado = false;
+	return Preferencias.on(PreferenciasExtensao.TABELA_EVENTOS, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
 				// TODO: implementar
@@ -383,6 +404,20 @@ function corrigirPesquisaRapida() {
 				if (style) input.setAttribute('style', style);
 				if (onfocus) input.setAttribute('onfocus', onfocus);
 			});
+		}
+	});
+}
+
+function criarBotaoDocumentosGedpro() {
+	let carregado = false;
+	return Preferencias.on(PreferenciasExtensao.DOCUMENTOS_GEDPRO, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				// TODO: implementar
+				const maybeMinutas = query<HTMLFieldSetElement>('fieldset#fldMinutas');
+				carregado = true;
+			}
+		} else if (carregado) {
 		}
 	});
 }
@@ -457,6 +492,19 @@ function decorarTabelaMeusLocalizadores() {
 	);
 }
 
+function destacarUltimoLinkClicado() {
+	let carregado = false;
+	return Preferencias.on(PreferenciasExtensao.ULTIMO_CLICADO, habilitada => {
+		if (habilitada) {
+			if (!carregado) {
+				// TODO: implementar
+				carregado = true;
+			}
+		} else if (carregado) {
+		}
+	});
+}
+
 function liftA2<A, B, C>(mx: Maybe<A>, my: Maybe<B>, f: (x: A, y: B) => C): Maybe<C>;
 function liftA2<A, B, C>(ax: Apply<A>, ay: Apply<B>, f: (x: A, y: B) => C): Apply<C> {
 	return ay.ap(ax.map((x: A) => (y: B) => f(x, y)));
@@ -483,96 +531,31 @@ function modificarPaginaEspecifica() {
 }
 
 function modificarTabelaProcessos() {
-	let carregado:
-		| false
-		| {
-				cores: Map<HTMLElement, { original: string | null; nova: string }>;
-				larguras: Map<HTMLElement, string | null>;
-		  } = false;
+	let carregado: false | Map<HTMLElement, string | null> = false;
 	return Preferencias.on(PreferenciasExtensao.TABELA_PROCESSOS, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
-				const cores = new Map<HTMLElement, { original: string | null; nova: string }>();
-				const larguras = new Map<HTMLElement, string | null>();
-				const juizoTh = encontrarTH('SigOrgaoJuizo', 'Juízo');
-				const th = encontrarTH('DesClasseJudicial', 'Classe')
-					.alt(juizoTh)
-					.altL(() =>
-						queryAll<HTMLTableRowElement>('tr[data-classe]')
-							.limit(1)
-							.filterMap(tr => Maybe.fromNullable(tr.closest('table')))
-							.chain(obterTHsValidos)
-					)
-					.altL(() => obterTHsValidos());
-				if (!th.isEmpty()) {
-					const table = th.filterMap(t => Maybe.fromNullable(t.closest('table')));
-					table.forEach(tbl => {
-						larguras.set(tbl, tbl.getAttribute('width'));
-					});
-					table.chain(tbl => queryAll<HTMLTableHeaderCellElement>('th', tbl)).forEach(th => {
-						larguras.set(th, th.getAttribute('width'));
-					});
-					juizoTh.ifCons(jzo => {
-						const juizoIndex = jzo.cellIndex;
-						const colors = new Map([
-							['A', 'black'],
-							['B', 'green'],
-							['C', 'red'],
-							['D', 'brown'],
-							['E', 'orange'],
-							['F', 'black'],
-							['G', 'green'],
-							['H', 'red'],
-						]);
-						table
-							.chain(tbl => List.fromArray(tbl.rows))
-							.filter(tr => /infraTr(Clara|Escura)/.test(tr.className))
-							.forEach(tr => {
-								const juizoCell = tr.cells[juizoIndex];
-								const juizoText = juizoCell.textContent || '_';
-								const juizo = juizoText[juizoText.length - 1];
-								if (/^\s*[A-Z]{5}TR/.test(juizoText)) {
-									cores.set(juizoCell, {
-										original: juizoCell.style.color,
-										nova: Maybe.fromNullable(colors.get(juizo)).getOrElse('black'),
-									});
-								}
-							});
-					});
-				}
-				carregado = { cores, larguras };
+				const table = queryAll(`a[onclick="infraAcaoOrdenar('NumProcesso','ASC');"]`)
+					.filterMap<HTMLElement>(closest('th'))
+					.altL(() => queryAll('tr[data-classe]'))
+					.limit(1)
+					.filterMap(closest('table'));
+				carregado = new Map(
+					(table as List<HTMLElement>)
+						.concat(table.chain(tbl => queryAll('th', tbl)))
+						.map(elt => [elt, elt.getAttribute('width')] as [HTMLElement, string | null])
+						.toArray()
+				);
 			}
-			for (const elt of carregado.larguras.keys()) {
+			for (const elt of carregado.keys()) {
 				elt.removeAttribute('width');
 			}
-			for (const [elt, cor] of carregado.cores.entries()) {
-				elt.style.color = cor.nova;
-			}
 		} else if (carregado) {
-			for (const [elt, largura] of carregado.larguras.entries()) {
+			for (const [elt, largura] of carregado.entries()) {
 				if (largura) elt.setAttribute('width', largura);
-			}
-			for (const [elt, cor] of carregado.cores.entries()) {
-				elt.style.color = cor.original;
 			}
 		}
 	});
-
-	function encontrarTH(campo: string, texto: string) {
-		const setas = queryAll<HTMLAnchorElement>(`a[onclick="infraAcaoOrdenar('${campo}','ASC');"]`);
-		if (setas.count() === 1) {
-			return setas.filterMap(link => Maybe.fromNullable(link.closest('th')));
-		} else {
-			return queryAll<HTMLTableHeaderCellElement>('th.infraTh').filter(
-				th => th.textContent === texto
-			);
-		}
-	}
-	function obterTHsValidos(context: NodeSelector = document): List<HTMLTableHeaderCellElement> {
-		return queryAll<HTMLTableHeaderCellElement>('th.infraTh', context).filter(th =>
-			/^Classe( Judicial)?$/.test((th.textContent || '').trim())
-		);
-	}
 }
 
 function mostrarIconesNoMenuAcoes() {
@@ -747,13 +730,11 @@ function queryAll<T extends Element>(selector: string, context: NodeSelector = d
 
 function telaProcesso() {
 	return Promise.all([
-		query<HTMLFieldSetElement>('fieldset#fldMinutas')
-			.map(criarBotaoDocumentosGedpro)
-			.getOrElse(Promise.resolve()),
-		// TODO: último link clicado
+		criarBotaoDocumentosGedpro(),
+		destacarUltimoLinkClicado(),
 		// TODO: fechar todas as janelas
-		// TODO: largura da tabela de eventos
-		// TODO: eventos referidos
+		corrigirColunasTabelaEventos(),
+		complementarEventosReferidos(),
 	]).then(() => {});
 }
 
