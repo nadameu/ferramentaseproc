@@ -3,19 +3,10 @@
 
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+  <link rel="stylesheet" href="chrome://browser/content/extension.css">
 </head>
 
 <body>
-
-  <div class="browser-style">
-    <input type="checkbox" id="estilos">
-    <label for="estilos">Carregar estilos personalizados</label>
-  </div>
-
-  <div class="browser-style">
-    <input type="checkbox" id="autocompletar">
-    <label for="autocompletar">Corrigir campos autocompletar</label>
-  </div>
 
   <div class="browser-style">
     <input type="checkbox" id="pesquisa-rapida">
@@ -37,6 +28,22 @@
     <div class="browser-style">
       <input type="checkbox" id="entrar">
       <label for="entrar">Centralizar lista de perfis</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Telas com lista de localizadores</legend>
+    <div class="browser-style">
+      <input type="checkbox" id="tabela-localizadores">
+      <label for="tabela-localizadores">Desbotar localizadores sem processos</label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Tela do processo</legend>
+    <div class="browser-style">
+      <input type="checkbox" id="documentos-gedpro">
+      <label for="documentos-gedpro">Exibir botão &ldquo;Carregar documentos do Gedpro&rdquo;</label>
     </div>
   </fieldset>
 
