@@ -38,7 +38,7 @@
 		"96": "chrome/skin/stapler-96.png"
 	},
 	"options_ui": {
-		"browser_style": true,
+		"browser_style": false,
 		"page": "chrome/content/options.html"
 	},
 	"permissions": [

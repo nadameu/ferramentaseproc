@@ -1,0 +1,56 @@
+:root {
+	font: message-box;
+	color: #333;
+}
+fieldset {
+	margin: 3rem 0 1rem;
+	border: solid #aaa;
+	border-width: 1px 0 0;
+}
+div {
+	position: relative;
+	margin: 0.5rem 0;
+}
+label,
+legend {
+	font-size: 1.25rem;
+	line-height: 1.875rem;
+}
+legend {
+	left: 8ex;
+	padding: 0 1ex;
+	border: none;
+	font-weight: bold;
+}
+input[type='checkbox'] {
+	display: none;
+}
+input ~ label {
+	margin-left: 2.3rem;
+}
+input[type='checkbox'] ~ .marker::before {
+	position: absolute;
+	top: 0.075rem;
+	content: '';
+	display: inline-block;
+	width: 1.5rem;
+	height: 1.5rem;
+	border: 1px solid #888;
+	border-radius: 2px;
+	background: #ddd;
+}
+input[type='checkbox']:checked ~ .marker::before {
+	background: #48c;
+}
+input[type='checkbox']:checked ~ .marker::after {
+	position: absolute;
+	content: '';
+	top: 0.15rem;
+	left: 0.5rem;
+	width: 0.4rem;
+	height: 0.95rem;
+	display: block;
+	border: solid white;
+	border-width: 0 3px 3px 0;
+	transform: rotate(45deg);
+}
