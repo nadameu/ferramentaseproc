@@ -6,6 +6,8 @@ async function main() {
     await carregarEstilosPersonalizados();
     return Promise.all([
         corrigirPesquisaRapida(),
+        destacarUltimoLinkClicado(),
+        // TODO: fechar todas as janelas
         modificarTabelaProcessos(),
         modificarPaginaEspecifica(),
         mostrarIconesNoMenuAcoes(),
@@ -652,13 +654,7 @@ function queryAll(selector, context = document) {
     return List.fromArray(context.querySelectorAll(selector));
 }
 function telaProcesso() {
-    return Promise.all([
-        criarBotaoDocumentosGedpro(),
-        destacarUltimoLinkClicado(),
-        // TODO: fechar todas as janelas
-        corrigirColunasTabelaEventos(),
-        complementarEventosReferidos(),
-    ]).then(() => { });
+    return Promise.all([criarBotaoDocumentosGedpro(), complementarEventosReferidos()]).then(() => { });
 }
 async function verificarCompatibilidadeVersao() {
     if (!unsafeWindow.FeP)

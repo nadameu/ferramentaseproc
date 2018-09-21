@@ -6,6 +6,8 @@ async function main() {
 	await carregarEstilosPersonalizados();
 	return Promise.all([
 		corrigirPesquisaRapida(),
+		destacarUltimoLinkClicado(),
+		// TODO: fechar todas as janelas
 		modificarTabelaProcessos(),
 		modificarPaginaEspecifica(),
 		mostrarIconesNoMenuAcoes(),
@@ -741,13 +743,7 @@ function queryAll<T extends Element>(selector: string, context: NodeSelector = d
 }
 
 function telaProcesso() {
-	return Promise.all([
-		criarBotaoDocumentosGedpro(),
-		destacarUltimoLinkClicado(),
-		// TODO: fechar todas as janelas
-		corrigirColunasTabelaEventos(),
-		complementarEventosReferidos(),
-	]).then(() => {});
+	return Promise.all([criarBotaoDocumentosGedpro(), complementarEventosReferidos()]).then(() => {});
 }
 
 async function verificarCompatibilidadeVersao() {
