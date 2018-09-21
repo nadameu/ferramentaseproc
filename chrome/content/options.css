@@ -64,6 +64,7 @@ input[type='checkbox']:checked ~ label::before {
 	background: #48c;
 }
 input[type='checkbox']:checked ~ .marker::before {
+	pointer-events: none;
 	position: absolute;
 	content: '';
 	top: 0.15rem;
