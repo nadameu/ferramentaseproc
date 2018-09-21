@@ -162,6 +162,9 @@ class Maybe<A> {
 	alt(that: Maybe<A>): Maybe<A> {
 		return this.fold(() => that, () => this);
 	}
+	altL(lazy: () => Maybe<A>): Maybe<A> {
+		return this.fold(lazy, () => this);
+	}
 	ap<B>(that: Maybe<(_: A) => B>): Maybe<B> {
 		return that.chain(f => this.map(f));
 	}
@@ -173,6 +176,12 @@ class Maybe<A> {
 	}
 	ifNothing(f: () => void): void {
 		return this.fold(f, () => {});
+	}
+	isJust(): boolean {
+		return this.fold(() => false, () => true);
+	}
+	isNothing(): boolean {
+		return this.fold(() => true, () => false);
 	}
 	chain<B>(f: (_: A) => Maybe<B>): Maybe<B> {
 		return this.fold(() => Nothing, f);

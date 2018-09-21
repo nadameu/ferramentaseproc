@@ -145,6 +145,9 @@ class Maybe {
     alt(that) {
         return this.fold(() => that, () => this);
     }
+    altL(lazy) {
+        return this.fold(lazy, () => this);
+    }
     ap(that) {
         return that.chain(f => this.map(f));
     }
@@ -156,6 +159,12 @@ class Maybe {
     }
     ifNothing(f) {
         return this.fold(f, () => { });
+    }
+    isJust() {
+        return this.fold(() => false, () => true);
+    }
+    isNothing() {
+        return this.fold(() => true, () => false);
     }
     chain(f) {
         return this.fold(() => Nothing, f);
