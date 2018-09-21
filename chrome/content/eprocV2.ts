@@ -351,21 +351,76 @@ function closest(selector: string) {
 }
 
 function complementarEventosReferidos() {
-	let carregado = false;
+	let carregado:
+		| false
+		| {
+				eventosReferentes: Map<number, HTMLTableCellElement[]>;
+				eventosReferidos: Map<number, string>;
+		  } = false;
 	return Preferencias.on(PreferenciasExtensao.EVENTOS_REFERIDOS, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
-				// TODO: implementar
-				carregado = true;
+				const eventosReferentes = new Map<number, HTMLTableCellElement[]>();
+				const eventosReferidos = new Map<number, string>();
+				query<HTMLTableElement>('table#tblEventos').map(tabela => {
+					queryAll<HTMLTableRowElement>(
+						'tr[class^="infraTr"], tr[bgcolor="#FFFACD"]',
+						tabela
+					).forEach(tr => {
+						const colunaDescricao = Just(tr.cells.length - 3)
+							.filter(x => x >= 0)
+							.map<HTMLTableCellElement>(i => tr.cells[i]);
+						const eventoReferente = colunaDescricao
+							.chain(obterTexto)
+							.mapNullable(x => x.match(/Refer\. ao Evento: (\d+)$/))
+							.map(x => Number(x[1]));
+						liftA2(eventoReferente, colunaDescricao, (ev, col) => {
+							eventosReferentes.set(ev, (eventosReferentes.get(ev) || []).concat([col]));
+						}).altL(() => {
+							if (query('.infraEventoPrazoParte', tr).isNothing()) return Nothing;
+							const numeroEvento = Just(tr.cells.length - 5)
+								.filter(x => x >= 0)
+								.map<HTMLTableCellElement>(i => tr.cells[i])
+								.chain(obterTexto)
+								.mapNullable(x => x.match(/\d+/))
+								.map(x => Number(x[0]));
+							if (!numeroEvento.map(ev => eventosReferentes.has(ev)).getOrElse(false))
+								return Nothing;
+							const segundaLinha = colunaDescricao
+								.mapNullable(x => x.innerHTML.split('<br>'))
+								.filter(xs => xs.length > 1)
+								.map(xs => xs[1]);
+							return liftA2(numeroEvento, segundaLinha, (ev, seg) => {
+								if (eventosReferentes.has(ev)) {
+									eventosReferidos.set(ev, seg);
 			}
-		} else if (carregado) {
+							});
+						});
+					});
+				});
+				carregado = { eventosReferentes, eventosReferidos };
 		}
+			for (const [ev, colunas] of carregado.eventosReferentes.entries()) {
+				const texto = carregado.eventosReferidos.get(ev);
+				if (texto) {
+					colunas.forEach(coluna => {
+						coluna.insertAdjacentHTML(
+							'beforeend',
+							`<span class="extraReferente noprint"><br>${texto}</span>`
+						);
 	});
 }
 			}
 		} else if (carregado) {
+			queryAll('.extraReferente').forEach(elt => {
+				(elt.parentNode as Node).removeChild(elt);
+			});
 		}
 	});
+
+	function obterTexto(node: Node): Maybe<string> {
+		return Just((node.textContent || '').trim()).filter(x => x !== '');
+	}
 }
 
 function corrigirPesquisaRapida() {
