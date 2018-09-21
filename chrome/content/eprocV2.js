@@ -316,13 +316,6 @@ function complementarEventosReferidos() {
         }
     });
 }
-function corrigirColunasTabelaEventos() {
-    let carregado = false;
-    return Preferencias.on("tabela-eventos" /* TABELA_EVENTOS */, habilitada => {
-        if (habilitada) {
-            if (!carregado) {
-                // TODO: implementar
-                carregado = true;
             }
         }
         else if (carregado) {

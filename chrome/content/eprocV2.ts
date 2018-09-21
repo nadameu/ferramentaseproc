@@ -275,7 +275,6 @@ const enum PreferenciasExtensao {
 	ENTRAR = 'entrar',
 	TABELA_LOCALIZADORES = 'tabela-localizadores',
 	DOCUMENTOS_GEDPRO = 'documentos-gedpro',
-	TABELA_EVENTOS = 'tabela-eventos',
 	EVENTOS_REFERIDOS = 'eventos-referidos',
 	ULTIMO_CLICADO = 'ultimo-clicado',
 	FECHAR_JANELAS = 'fechar-janelas',
@@ -363,14 +362,6 @@ function complementarEventosReferidos() {
 		}
 	});
 }
-
-function corrigirColunasTabelaEventos() {
-	let carregado = false;
-	return Preferencias.on(PreferenciasExtensao.TABELA_EVENTOS, habilitada => {
-		if (habilitada) {
-			if (!carregado) {
-				// TODO: implementar
-				carregado = true;
 			}
 		} else if (carregado) {
 		}
