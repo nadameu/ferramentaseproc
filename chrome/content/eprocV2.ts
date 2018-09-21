@@ -493,14 +493,26 @@ function decorarTabelaMeusLocalizadores() {
 }
 
 function destacarUltimoLinkClicado() {
-	let carregado = false;
+	let carregado: false | ((_: MouseEvent) => void) = false;
 	return Preferencias.on(PreferenciasExtensao.ULTIMO_CLICADO, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
-				// TODO: implementar
-				carregado = true;
+				carregado = evt => {
+					Maybe.fromNullable(evt.target)
+						.refine(
+							(elt): elt is HTMLAnchorElement =>
+								(elt as Node).nodeType === Node.ELEMENT_NODE &&
+								(elt as Element).matches('a[data-doc]')
+						)
+						.ifJust(link => {
+							query('#extraUltimoLinkClicado').ifJust(link => link.removeAttribute('id'));
+							link.setAttribute('id', 'extraUltimoLinkClicado');
+						});
+				};
 			}
+			document.body.addEventListener('click', carregado);
 		} else if (carregado) {
+			document.body.removeEventListener('click', carregado);
 		}
 	});
 }

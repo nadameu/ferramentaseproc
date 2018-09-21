@@ -4,6 +4,11 @@
 #txtNumProcessoPesquisaRapida::-moz-placeholder {
 	font-style: italic;
 }
+#extraUltimoLinkClicado {
+	background: #ff3;
+	color: #444;
+	border: dotted 1px #fca;
+}
 a img {
 	border: none;
 }

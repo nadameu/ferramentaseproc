@@ -431,11 +431,20 @@ function destacarUltimoLinkClicado() {
     return Preferencias.on("ultimo-clicado" /* ULTIMO_CLICADO */, habilitada => {
         if (habilitada) {
             if (!carregado) {
-                // TODO: implementar
-                carregado = true;
+                carregado = evt => {
+                    Maybe.fromNullable(evt.target)
+                        .refine((elt) => elt.nodeType === Node.ELEMENT_NODE &&
+                        elt.matches('a[data-doc]'))
+                        .ifJust(link => {
+                        query('#extraUltimoLinkClicado').ifJust(link => link.removeAttribute('id'));
+                        link.setAttribute('id', 'extraUltimoLinkClicado');
+                    });
+                };
             }
+            document.body.addEventListener('click', carregado);
         }
         else if (carregado) {
+            document.body.removeEventListener('click', carregado);
         }
     });
 }
