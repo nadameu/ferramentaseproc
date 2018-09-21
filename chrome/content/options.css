@@ -2,10 +2,26 @@
 	font: message-box;
 	color: #333;
 }
-fieldset {
+body {
+	display: flex;
+	flex-direction: column;
+}
+h1,
+h2 {
+	font-weight: 400;
+}
+h1 {
+	font-size: 1.8rem;
+	margin: 3rem 0 2rem;
+	padding: 0 2ex;
+}
+h2 {
+	font-size: 1.5rem;
+	line-height: 1.25em;
 	margin: 3rem 0 1rem;
+	padding: 0 1ex;
 	border: solid #aaa;
-	border-width: 1px 0 0;
+	border-width: 0 0 1px;
 }
 div {
 	position: relative;
@@ -28,9 +44,14 @@ input[type='checkbox'] {
 input ~ label {
 	margin-left: 2.3rem;
 }
-input[type='checkbox'] ~ .marker::before {
+p {
+	margin: 0.5em 0 1em 2.3rem;
+	color: #444;
+}
+input[type='checkbox'] ~ label::before {
 	position: absolute;
 	top: 0.075rem;
+	left: 0;
 	content: '';
 	display: inline-block;
 	width: 1.5rem;
@@ -39,10 +60,10 @@ input[type='checkbox'] ~ .marker::before {
 	border-radius: 2px;
 	background: #ddd;
 }
-input[type='checkbox']:checked ~ .marker::before {
+input[type='checkbox']:checked ~ label::before {
 	background: #48c;
 }
-input[type='checkbox']:checked ~ .marker::after {
+input[type='checkbox']:checked ~ .marker::before {
 	position: absolute;
 	content: '';
 	top: 0.15rem;
@@ -53,4 +74,5 @@ input[type='checkbox']:checked ~ .marker::after {
 	border: solid white;
 	border-width: 0 3px 3px 0;
 	transform: rotate(45deg);
+	z-index: 1;
 }

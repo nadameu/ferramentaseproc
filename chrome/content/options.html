@@ -7,77 +7,122 @@
 </head>
 
 <body>
+  <h1>Preferências</h1>
+
+
+  <h2>Todas as páginas</h2>
 
   <div>
     <input type="checkbox" id="pesquisa-rapida">
     <span class="marker"></span>
-    <label for="pesquisa-rapida">Corrigir campo &ldquo;Pesquisa rápida&rdquo;</label>
+    <label class="browser-style-label" for="pesquisa-rapida">Corrigir campo &ldquo;Pesquisa rápida&rdquo;</label>
+    <p>Faz com que o texto &ldquo;Pesquisa&rdquo; não desapareça automaticamente ao clicar no campo, somente após
+      começar a digitar.
+      Quando o texto digitado é excluído, a palavra &ldquo;Pesquisa&rdquo; aparece novamente.</p>
   </div>
+
+
+  <h2>Telas com lista de localizadores</h2>
+
+  <div>
+    <input type="checkbox" id="tabela-localizadores">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="tabela-localizadores">Esmaecer localizadores sem processos</label>
+    <p>Nas telas em que aparece uma lista de localizadores, torna os localizadores vazios menos destacados, para que a
+      atenção seja naturalmente direcionada aos demais.</p>
+  </div>
+
+
+  <h2>Telas com lista de processos</h2>
 
   <div>
     <input type="checkbox" id="tabela-processos">
     <span class="marker"></span>
-    <label for="tabela-processos">Corrigir largura das tabelas de processos</label>
+    <label class="browser-style-label" for="tabela-processos">Corrigir largura das tabelas de processos</label>
+    <p>Quando uma tabela com vários processos possui poucas colunas, ao usar um monitor grande, as informações podem
+      parecer &ldquo;esticadas&rdquo;. Selecionando esta opção, as tabelas ocupam apenas o espaço necessário para
+      exibir
+      as informações disponíveis.</p>
+  </div>
+
+
+  <h2>Telas com documentos</h2>
+
+  <div>
+    <input type="checkbox" id="ultimo-clicado">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="ultimo-clicado">Destacar link clicado mais recentemente</label>
+    <p>Modifica a formatação do último link de documento clicado, para facilitar sua identificação entre os demais
+      documentos do processo. Útil quando há vários documentos com nomes semelhantes em sequência, no mesmo evento.</p>
+  </div>
+
+  <div>
+    <input type="checkbox" id="fechar-janelas">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="fechar-janelas">Permitir fechar todas as janelas simultaneamente</label>
+    <p>Controla as janelas de documentos abertas em determinado processo, permitindo que sejam fechadas ao sair da
+      tela do processo ou quando o usuário achar conveniente.</p>
+  </div>
+
+
+  <h2>Tela de seleção de perfil</h2>
+
+  <div>
+    <input type="checkbox" id="entrar">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="entrar">Centralizar lista de perfis</label>
+    <p>Após o login, quando o usuário possui mais de um
+      perfil no <i>eproc</i>, é mostrada uma tela com uma lista dos perfis para que possa escolher qual deseja
+      utilizar. Esta
+      preferência centraliza a lista, que geralmente aparece deslocada para a direita.</p>
+  </div>
+
+
+  <h2>Tela do processo</h2>
+
+  <div>
+    <input type="checkbox" id="documentos-gedpro">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="documentos-gedpro">Mostrar botão &ldquo;Carregar documentos do
+      Gedpro&rdquo;</label>
+    <p>Cria um botão abaixo da lista de minutas através do qual é possível carregar os documentos do <i>Gedpro</i>
+      vinculados
+      ao processo.</p>
   </div>
 
   <div>
     <input type="checkbox" id="icones-acoes">
     <span class="marker"></span>
-    <label for="icones-acoes">Mostrar ícones no menu &ldquo;Ações&rdquo;</label>
+    <label class="browser-style-label" for="icones-acoes">Mostrar ícones no menu &ldquo;Ações&rdquo;</label>
+    <p>Exibe ícones nos botões do menu &ldquo;Ações&rdquo;, facilitando a identificação da opção desejada entre as
+      diversas disponíveis.<br>
+      <strong>Atenção:</strong> esta preferência somente funciona se a configuração do <i>eproc</i> <i>&ldquo;Botões
+        no
+        menu &lsquo;Ações&rsquo;&rdquo;</i> estiver ativada.</p>
   </div>
 
-  <fieldset>
-    <legend>Tela de seleção de perfil</legend>
-    <div>
-      <input type="checkbox" id="entrar">
-      <span class="marker"></span>
-      <label for="entrar">Centralizar lista de perfis</label>
-    </div>
-  </fieldset>
+  <div>
+    <input type="checkbox" id="tabela-eventos">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="tabela-eventos">Corrigir largura das colunas das tabelas de eventos</label>
+    <p>Por padrão, o <i>eproc</i> define a largura de cada coluna da lista de eventos de forma fixa. Esta preferência
+      permite
+      que o navegador decida como melhor ajustar as colunas conforme a quantidade de informação que cada uma contém.</p>
+  </div>
 
-  <fieldset>
-    <legend>Telas com lista de localizadores</legend>
-    <div>
-      <input type="checkbox" id="tabela-localizadores">
-      <span class="marker"></span>
-      <label for="tabela-localizadores">Desbotar localizadores sem processos</label>
-    </div>
-  </fieldset>
+  <div>
+    <input type="checkbox" id="eventos-referidos">
+    <span class="marker"></span>
+    <label class="browser-style-label" for="eventos-referidos">Identificar a que parte se refere um evento de
+      abertura ou encerramento de prazo</label>
+    <p>Alguns eventos, como &ldquo;Intimação Eletrônica - Confirmada&rdquo; e &ldquo;Decurso de Prazo&rdquo;, informam
+      o número do evento a que se referem. Porém, é preciso consultar o evento original para saber qual parte estava
+      sendo
+      intimada/citada. Com
+      esta preferência, o tipo (autor, réu, interessado, etc.) e nome da parte aparecem
+      também no evento referido.</p>
+  </div>
 
-  <fieldset>
-    <legend>Tela do processo</legend>
-    <div>
-      <input type="checkbox" id="documentos-gedpro">
-      <span class="marker"></span>
-      <label for="documentos-gedpro">Exibir botão &ldquo;Carregar documentos do
-        Gedpro&rdquo;</label>
-    </div>
-    <div>
-      <input type="checkbox" id="tabela-eventos">
-      <span class="marker"></span>
-      <label for="tabela-eventos">Corrigir largura das colunas das tabelas de eventos</label>
-    </div>
-    <div>
-      <input type="checkbox" id="eventos-referidos">
-      <span class="marker"></span>
-      <label for="eventos-referidos">Identificar a que parte se refere um evento de
-        abertura ou encerramento de prazo</label>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>Telas com documentos</legend>
-    <div>
-      <input type="checkbox" id="ultimo-clicado">
-      <span class="marker"></span>
-      <label for="ultimo-clicado">Destacar link clicado mais recentemente</label>
-    </div>
-    <div>
-      <input type="checkbox" id="fechar-janelas">
-      <span class="marker"></span>
-      <label for="fechar-janelas">Permitir fechar todas as janelas simultaneamente</label>
-    </div>
-  </fieldset>
 
   <script src="options.js"></script>
 
