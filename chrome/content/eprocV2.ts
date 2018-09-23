@@ -29,38 +29,54 @@ interface Apply<A> {
 	ap<B>(that: Apply<(_: A) => B>): Apply<B>;
 	map<B>(f: (_: A) => B): Apply<B>;
 }
-
-interface Visitor {
-	visit(node: GedproNode): void;
-	visitDoc(doc: GedproDoc): void;
-	visitNode(node: GedproNode): void;
-	visitNodes(nodes: GedproNodes): void;
+interface Applicative<A> extends Apply<A> {
+	constructor: ApplicativeTypeRep;
+	ap<B>(that: Applicative<(_: A) => B>): Applicative<B>;
+	map<B>(f: (_: A) => B): Applicative<B>;
 }
-class GedproNodes extends Array<GedproNode> {
-	constructor(doc: XMLDocument) {
-		super();
-		queryAll('reg', doc).forEach(reg => {
-			this.push(GedproNode.fromReg(reg));
-		});
-	}
-
-	accept(visitor: Visitor) {
-		visitor.visitNodes(this);
-		this.forEach(node => visitor.visit(node));
-	}
+interface ApplicativeTypeRep {
+	of<A>(_: A): Applicative<A>;
 }
 
-class GedproIcones extends Array<GedproIcone> {
-	constructor(str: string) {
-		super();
-		for (let i = 0; i < str.length; i += 3) {
-			this.push(new GedproIcone(str.substr(i, 3)));
-		}
-	}
+interface Array<T> {
+	traverse<U>(A: typeof Maybe, f: (_: T) => Maybe<U>): Maybe<U[]>;
+	traverse<U>(A: ApplicativeTypeRep, f: (_: T) => Applicative<U>): Applicative<U[]>;
 }
 
-class GedproIcone {
-	static ARQUIVOS = new Map<string, string>([
+Array.prototype.traverse = function traverse(A: any, f: Function) {
+	return this.reduce(
+		(axs, x) => f(x).ap(axs.map((xs: any[]) => (x: any) => (xs.push(x), xs))),
+		A.of([])
+	);
+};
+
+interface GedproNodeBase {
+	icones: string[];
+	rotulo: string;
+}
+
+type GedproNode = GedproNodeBasico | GedproDoc;
+
+interface GedproNodeBasico extends GedproNodeBase {
+	isDoc: false;
+}
+
+interface GedproDoc extends GedproNodeBase {
+	isDoc: true;
+	maiorAcesso: number;
+	codigo: string;
+	status: string;
+	statusIcone: string;
+	data: string;
+	criador: string;
+	dataCriacao: string;
+	versao: string;
+	editor: string;
+	dataVersao: string;
+}
+
+function parseGedproXml(xml: XMLDocument): GedproNode[] {
+	const iconesReg = new Map([
 		['iWO', 'Word'],
 		['iPO', 'Papiro'],
 		['PDF', 'pdfgedpro'],
@@ -71,6 +87,9 @@ class GedproIcone {
 		['iT0', 'T'],
 		['i00', 'Vazio'],
 		['iI0', 'I'],
+	]);
+
+	const iconesStatus = new Map([
 		['0', 'documento'], // Em edição
 		['1', 'chave'], // Bloqueado
 		['2', 'valida'], // Pronto para assinar
@@ -82,67 +101,7 @@ class GedproIcone {
 		['8', 'abrirbloco'], // Conferido
 	]);
 
-	readonly arquivo: string = 'Vazio';
-	constructor(str: string) {
-		if (GedproIcone.ARQUIVOS.has(str)) {
-			this.arquivo = GedproIcone.ARQUIVOS.get(str) as string;
-		}
-	}
-
-	toImg(host: string) {
-		const img = document.createElement('img');
-		img.className = 'extraGedproImg';
-		img.src = `http://${host}/images/${this.arquivo}.gif`;
-		return img;
-	}
-}
-
-class GedproNode {
-	icones: GedproIcones = new GedproIcones('');
-	rotulo: string = '';
-	constructor(reg: Element) {
-		if (reg === undefined) return;
-		const icones = reg.getAttribute('icones');
-		if (icones === null) return;
-		this.icones = new GedproIcones(icones);
-	}
-
-	accept(visitor: Visitor) {
-		visitor.visitNode(this);
-	}
-
-	static fromReg(reg: Element): GedproNode {
-		switch (reg.getAttribute('codigoTipoNodo')) {
-			case '-1':
-				return new GedproDocComposto(reg);
-
-			case '0':
-				return new GedproProcesso(reg);
-
-			case '1':
-				return new GedproIncidente(reg);
-
-			case '2':
-				return new GedproDoc(reg);
-
-			default:
-				throw new Error(`Tipo de nó desconhecido: ${reg.getAttribute('codigoTipoNodo')}.`);
-		}
-	}
-}
-
-class GedproDoc extends GedproNode {
-	maiorAcesso: number;
-	codigo: string;
-	status: string;
-	statusIcone: GedproIcone;
-	data: string;
-	criador: string;
-	dataCriacao: string;
-	versao: string;
-	editor: string;
-	dataVersao: string;
-	static STATUSES = new Map([
+	const statuses = new Map([
 		['0', 'Em edição'],
 		['1', 'Bloqueado'],
 		['2', 'Pronto para assinar'],
@@ -155,241 +114,206 @@ class GedproDoc extends GedproNode {
 		['9', 'Para conferir'],
 	]);
 
-	constructor(reg: Element) {
-		super(reg);
-		this.rotulo = reg.getAttribute('nomeTipoDocumentoExibicao') as string;
-		this.maiorAcesso = Number(reg.getAttribute('MaiorAcesso') as string);
-		this.codigo = reg.getAttribute('codigoDocumento') as string;
-		const statusDocumento = reg.getAttribute('statusDocumento') as string;
-		this.status = GedproDoc.STATUSES.get(statusDocumento) as string;
-		this.statusIcone = new GedproIcone(statusDocumento);
-		this.data = reg.getAttribute('dataDocumento') as string;
-		this.criador = reg.getAttribute('siglaCriador') as string;
-		this.dataCriacao = reg.getAttribute('dataCriacao') as string;
-		this.versao = reg.getAttribute('numeroVersaoDocumento') as string;
-		this.editor = reg.getAttribute('siglaEditor') as string;
-		this.dataVersao = reg.getAttribute('dataHoraEdicao') as string;
-	}
+	return queryAll('reg', xml)
+		.map(fromReg)
+		.toArray();
 
-	accept(visitor: Visitor) {
-		visitor.visitDoc(this);
-	}
-	getClasse() {
-		if (this.maiorAcesso >= 8) {
-			return 'extraGedproRotuloGreen';
-		} else if (this.maiorAcesso >= 2) {
-			return 'extraGedproRotuloBlue';
+	function fromReg(reg: Element): GedproNode {
+		const icones = iconesFromReg(reg);
+		const codigoTipoNodo = reg.getAttribute('codigoTipoNodo');
+		switch (codigoTipoNodo) {
+			case '-1':
+				return fromIconesRegDocComposto(icones, reg);
+
+			case '0':
+				return fromIconesRegProcesso(icones, reg);
+
+			case '1':
+				return fromIconesRegIncidente(icones, reg);
+
+			case '2':
+				return fromIconesRegDoc(icones, reg);
+
+			default:
+				throw new Error(`Tipo de nó desconhecido: ${codigoTipoNodo}.`);
 		}
-		return 'extraGedproRotuloGray';
 	}
-}
-
-class GedproProcesso extends GedproNode {
-	constructor(reg: Element) {
-		super(reg);
-		this.rotulo = 'Documentos do GEDPRO';
+	function fromIconesRegDocComposto(icones: string[], reg: Element): GedproNodeBasico {
+		const [tipo, id, ano] = fromElementAttributes(reg, [
+			'nomeTipoDocComposto',
+			'identificador',
+			'ano',
+		]);
+		return { isDoc: false, icones, rotulo: `${tipo} ${id}/${ano}` };
 	}
-}
-
-class GedproIncidente extends GedproNode {
-	constructor(reg: Element) {
-		super(reg);
-		this.rotulo = reg.getAttribute('descricaoIncidente') as string;
+	function fromIconesRegProcesso(icones: string[], _: Element): GedproNodeBasico {
+		return { isDoc: false, icones, rotulo: 'Documentos do Gedpro' };
 	}
-}
-
-class GedproDocComposto extends GedproNode {
-	constructor(reg: Element) {
-		super(reg);
-		this.rotulo = `${reg.getAttribute('nomeTipoDocComposto')} ${reg.getAttribute(
-			'identificador'
-		)}/${reg.getAttribute('ano')}`;
+	function fromIconesRegIncidente(icones: string[], reg: Element): GedproNodeBasico {
+		const [rotulo] = fromElementAttributes(reg, ['descricaoIncidente']);
+		return { isDoc: false, icones, rotulo };
 	}
-}
-
-const GedproTabela = (function() {
-	let table: HTMLTableElement;
-	function getTable() {
-		if (!table) {
-			createTable();
+	function fromIconesRegDoc(icones: string[], reg: Element): GedproDoc {
+		const [
+			rotulo,
+			textoMaiorAcesso,
+			codigo,
+			statusDocumento,
+			data,
+			criador,
+			dataCriacao,
+			versao,
+			editor,
+			dataVersao,
+		] = fromElementAttributes(reg, [
+			'nomeTipoDocumentoExibicao',
+			'MaiorAcesso',
+			'codigoDocumento',
+			'statusDocumento',
+			'dataDocumento',
+			'siglaCriador',
+			'dataCriacao',
+			'numeroVersaoDocumento',
+			'siglaEditor',
+			'dataHoraEdicao',
+		]);
+		const maiorAcesso = Number(textoMaiorAcesso);
+		if (isNaN(maiorAcesso)) {
+			console.warn('Dados informados:', reg);
+			throw new Error('Valor do maior acesso inválido.');
 		}
-		return table;
-	}
-	function createTable() {
-		table = document.createElement('table');
-		table.className = 'infraTable';
-	}
-	let tHead: HTMLTableSectionElement;
-	function getTHead() {
-		if (!tHead) {
-			createTHead();
+		const status = statuses.get(statusDocumento);
+		const statusIcone = iconesStatus.get(statusDocumento);
+		if (status === undefined || statusIcone === undefined) {
+			console.warn('Dados informados:', reg);
+			throw new Error('Status do documento inválido.');
 		}
-		return tHead;
+		return {
+			isDoc: true,
+			icones,
+			rotulo,
+			maiorAcesso,
+			codigo,
+			status,
+			statusIcone,
+			data,
+			criador,
+			dataCriacao,
+			versao,
+			editor,
+			dataVersao,
+		};
 	}
-	const numCells = 7;
-	function createTHead() {
-		const table = getTable();
-		table.deleteTHead();
-		tHead = table.createTHead();
-		const tr = tHead.insertRow(0);
-		['Documento', 'Número', 'Status', 'Data Documento', 'Criação', 'Edição'].forEach(text => {
-			const th = document.createElement('th');
-			th.className = 'infraTh';
-			th.textContent = text;
-			tr.appendChild(th);
+	function iconesFromReg(reg: Element): string[] {
+		return Maybe.fromNullable(reg.getAttribute('icones'))
+			.chain(icones => Maybe.fromNullable(icones.match(/.{3}/g)).map(xs => Array.from(xs)))
+			.chain(xs => xs.traverse(Maybe, icone => Maybe.fromNullable(iconesReg.get(icone))))
+			.fold(
+				() => {
+					throw new Error('Nó não possui ícones.');
+				},
+				icones => icones
+			);
+	}
+	function fromElementAttributes(reg: Element, attributes: string[]): string[] {
+		return attributes.map(attr => {
+			const value = reg.getAttribute(attr);
+			if (value === null) {
+				console.warn('Dados informados:', reg);
+				throw new Error(`Atributo não encontrado: "${attr}".`);
+			}
+			return value;
 		});
-		tr.cells[2].colSpan = 2;
 	}
-	let tBody: HTMLTableSectionElement;
-	function getTBody() {
-		if (!tBody) {
-			createTBody();
-		}
-		return tBody;
-	}
-	function createTBody() {
-		const table = getTable();
-		if (table.tBodies.length) {
-			queryAll('tbody', table).forEach(tBody => {
-				table.removeChild(tBody);
-			});
-		}
-		tBody = document.createElement('tbody');
-		table.appendChild(tBody);
-		trClassName = null;
-	}
-	let tFoot: HTMLTableSectionElement;
-	function getTFoot() {
-		if (!tFoot) {
-			createTFoot();
-		}
-		return tFoot;
-	}
-	function createTFoot() {
-		const table = getTable();
-		table.deleteTFoot();
-		tFoot = table.createTFoot();
-		const tr = tFoot.insertRow(0);
-		const th = document.createElement('th');
-		th.className = 'extraGedproPaginacao';
-		th.colSpan = numCells;
-		tr.appendChild(th);
-	}
-	let trClassName: 'infraTrClara' | 'infraTrEscura' | null;
-	function createRow() {
-		const tBody = getTBody();
-		const tr = tBody.insertRow(tBody.rows.length);
-		trClassName = trClassName == 'infraTrClara' ? 'infraTrEscura' : 'infraTrClara';
-		tr.className = trClassName;
-		return tr;
-	}
-	let pagina = 1;
-	let maiorPagina = pagina;
-	return {
-		getPagina(estaPagina: number) {
-			pagina = estaPagina;
-			getTHead();
-			createTBody();
-			createTFoot();
-			return table;
-		},
-		getTable() {
-			return getTable();
-		},
-		visit(obj: GedproNodes) {
-			obj.accept(this);
-		},
-		visitNodes(nodes: GedproNodes) {
-			const possuiMaisDocumentos = nodes.length >= 21;
-			if (pagina > maiorPagina) {
-				maiorPagina = pagina;
-			} else if (pagina == maiorPagina && possuiMaisDocumentos) {
-				maiorPagina++;
-			}
-			getTHead();
-			const cell = getTFoot().rows[0].cells[0];
+}
 
-			function criaLinkPaginacaoGedpro(pagina: number, texto: number) {
-				const link = document.createElement('a');
-				link.href = '#cargaDocsGedpro';
-				link.textContent = String(texto);
-				link.addEventListener(
-					'click',
-					() => Gedpro.getDocs(pagina).catch(err => console.error(err)),
-					false
-				);
-				cell.appendChild(link);
+function renderGedproNodes(host: string, nodes: GedproNode[]): HTMLTableElement {
+	const template = document.createElement('template');
+	template.innerHTML = `<table class="infraTable" id="extraTblGedpro" style="font-size:12px;" cellpadding="3" border="0">
+	<thead>
+		<tr>
+			<th class="infraTh">Documento</th>
+			<th class="infraTh">Número</th>
+			<th class="infraTh" colspan="2">Status</th>
+			<th class="infraTh">Data Documento</th>
+			<th class="infraTh">Criação</th>
+			<th class="infraTh">Edição</th>
+		</tr>
+	</thead>
+</table>`;
+	const tabela = document.importNode(template.content, true).firstChild as HTMLTableElement;
+	const tbody = tabela.createTBody();
+	const templateLinhaBasico = document.createElement('template');
+	templateLinhaBasico.innerHTML = `<tr><td colspan="7"></td></tr>`;
+	const templateLinhaDoc = document.createElement('template');
+	templateLinhaDoc.innerHTML = `<tr>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td></td>
+</tr>`;
+	let classeLinha: 'infraTrClara' | 'infraTrEscura' = 'infraTrEscura';
+	const templateIcone = document.createElement('template');
+	templateIcone.innerHTML = '<img class="extraGedproImg">';
+	nodes.forEach(node => {
+		tbody.appendChild(renderNode(node));
+	});
+	return tabela;
+
+	function imageFromNomeArquivo(nomeArquivo: string): HTMLImageElement {
+		const icone = document.importNode(templateIcone.content, true).firstChild as HTMLImageElement;
+		icone.src = `http://${host}/images/${nomeArquivo}.gif`;
+		return icone;
+	}
+	function renderNode(node: GedproNode): HTMLTableRowElement {
+		const linha = document.importNode(
+			(node.isDoc ? templateLinhaDoc : templateLinhaBasico).content,
+			true
+		).firstChild as HTMLTableRowElement;
+		classeLinha = classeLinha === 'infraTrEscura' ? 'infraTrClara' : 'infraTrEscura';
+		linha.classList.add(classeLinha);
+		const celulaRotulo = linha.cells[0];
+		node.icones.forEach(icone => {
+			celulaRotulo.insertAdjacentElement('beforeend', imageFromNomeArquivo(icone));
+		});
+		celulaRotulo.insertAdjacentText('beforeend', node.rotulo);
+		if (node.isDoc) return renderDoc(linha, node);
+		return linha;
+	}
+
+	function renderDoc(linha: HTMLTableRowElement, node: GedproDoc): HTMLTableRowElement {
+		let classeRotulo = 'extraGedproRotuloGray'
+		if (node.maiorAcesso >= 2) {
+			classeRotulo = 'extraGedproRotuloBlue'
+			if (node.maiorAcesso>=8){
+				classeRotulo = 'extraGedproRotuloGreen'
 			}
-			cell.appendChild(document.createTextNode('Página '));
-			for (let p = 1; p <= maiorPagina; p++) {
-				if (p == pagina) {
-					const span = document.createElement('span');
-					span.className = 'extraGedproPaginaAtual';
-					span.textContent = String(pagina);
-					cell.appendChild(span);
-				} else {
-					criaLinkPaginacaoGedpro(p, p);
-				}
-				cell.appendChild(document.createTextNode(' '));
-			}
-		},
-		visitNode(node: GedproNode) {
-			const tr = createRow();
-			const tdRotulo = tr.insertCell(0);
-			tdRotulo.colSpan = numCells;
-			node.icones.forEach(function(icone) {
-				tdRotulo.appendChild(icone.toImg());
-			});
-			tdRotulo.appendChild(document.createTextNode(` ${node.rotulo}`));
-			return tr;
-		},
-		visitDoc(doc: GedproDoc) {
-			const row = this.visitNode(doc);
-			const tdRotulo = row.cells[row.cells.length - 1];
-			tdRotulo.removeAttribute('colspan');
-			tdRotulo.className = doc.getClasse();
-			if (tdRotulo.className != 'extraGedproRotuloGray') {
-				const node = doc;
-				tdRotulo.addEventListener(
-					'click',
-					(e: MouseEvent) => {
-						e.preventDefault();
-						e.stopPropagation();
-						const menuFechar = $<HTMLLIElement>('#extraFechar');
-						if (menuFechar) {
-							menuFechar.style.visibility = 'visible';
-						}
-						const win = window.wrappedJSObject.documentosAbertos[`${Eproc.processo}${node.codigo}`];
-						if (typeof win == 'object' && !win.closed) {
-							return win.focus();
-						}
-						window.wrappedJSObject.documentosAbertos[
-							`${Eproc.processo}${node.codigo}`
-						] = window.open(
-							`http://${
-								Gedpro.host
-							}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
-								node.codigo
-							}`,
-							`${Eproc.processo}${node.codigo}`,
-							'menubar=0,resizable=1,status=0,toolbar=0,location=0,directories=0,scrollbars=1'
-						);
-					},
-					false
-				);
-			}
-			row.insertCell(row.cells.length).innerHTML = doc.codigo;
-			row.insertCell(row.cells.length).innerHTML = doc.status;
-			row.insertCell(row.cells.length).appendChild(doc.statusIcone.toImg());
-			row.insertCell(row.cells.length).innerHTML = doc.data;
-			row.insertCell(row.cells.length).innerHTML = `${doc.criador}<br/>${doc.dataCriacao}`;
-			row.insertCell(row.cells.length).innerHTML = `Versão ${doc.versao} por ${doc.editor} em<br/>${
-				doc.dataVersao
-			}`;
-			return row;
-		},
-	};
-})();
+			const link = document.createElement('a')
+			link.dataset.doc = node.codigo
+			link.href = `http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${node.codigo}`
+			link.target="_blank;"
+			link.textContent=node.codigo
+			linha.cells[1].appendChild(link)
+		} else {
+			linha.cells[1].textContent = node.codigo;
+		}
+		linha.cells[0].classList.add(classeRotulo)
+		linha.cells[2].textContent = node.status;
+		linha.cells[3].appendChild(imageFromNomeArquivo(node.statusIcone));
+		linha.cells[4].textContent = node.data;
+		linha.cells[5].textContent = node.criador;
+		linha.cells[5].insertAdjacentHTML('beforeend', '<br>');
+		linha.cells[5].insertAdjacentText('beforeend', node.dataCriacao);
+		linha.cells[6].textContent = `Versão ${node.versao} por ${node.editor} em`;
+		linha.cells[6].insertAdjacentHTML('beforeend', '<br>');
+		linha.cells[6].insertAdjacentText('beforeend', node.dataVersao);
+		return linha;
+	}
+
+}
 
 class List<A> {
 	constructor(readonly fold: <B>(Nil: () => B, Cons: (head: A, tail: List<A>) => B) => B) {}
@@ -489,10 +413,8 @@ class List<A> {
 		return new List((N, _) => N());
 	}
 	static fromArray<A>(xs: ArrayLike<A>): List<A> {
-		let limit = 1e3;
 		const len = xs.length;
 		function go(i: number): List<A> {
-			if (!limit--) throw new Error('x');
 			return new List((N, C) => {
 				if (i < len) {
 					return C(xs[i], go(i + 1));
@@ -864,41 +786,7 @@ function criarAreaGedpro(
 			</span>
 			<img id="extraImgGedproAtualizar" src="imagens/icons/refresh.gif" title="Atualizar" alt="Atualizar" style="width: 0.94em; height: 1.1em;">
 		</legend>
-		<div id="extraConteudoGedpro" hidden>
-			<table class="infraTable" id="extraTblGedpro" style="font-size:12px;" cellpadding="3" border="0">
-				<thead>
-					<tr>
-						<th class="infraTh">Documento</th>
-						<th class="infraTh">Número</th>
-						<th class="infraTh">Status</th>
-						<th class="infraTh">Data Documento</th>
-						<th class="infraTh">Criação</th>
-						<th class="infraTh">Edição</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td colspan="999">Sem minutas para este usuário</td>
-					</tr>
-					<tr class="infraTrClara">
-						<td>Sentença</td>
-						<td>9999999</td>
-						<td>Assinado<img src="http://gedpro.jfsc.jus.br/images/assinatura.gif"></td>
-						<td>dd/mm/aaaa</td>
-						<td>XXX<br>dd/mm/aaaa</td>
-						<td>Versão 3 por YYY em<br>dd/mm/aaaa</td>
-					</tr>
-					<tr class="infraTrEscura">
-						<td>Sentença</td>
-						<td>9999999</td>
-						<td>Assinado<img src="http://gedpro.jfsc.jus.br/images/assinatura.gif"></td>
-						<td>dd/mm/aaaa</td>
-						<td>XXX<br>dd/mm/aaaa</td>
-						<td>Versão 3 por YYY em<br>dd/mm/aaaa</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
+		<div id="extraConteudoGedpro" hidden></div>
 	</fieldset>`;
 	const fieldset = document.importNode(template.content, true).firstChild as HTMLFieldSetElement;
 	const toggle = fieldset.querySelector('#extraGedproToggle') as HTMLSpanElement;
@@ -907,7 +795,6 @@ function criarAreaGedpro(
 	const imgCarregando = fieldset.querySelector('#extraImgGedproCarregando') as HTMLImageElement;
 	const imgAtualizar = fieldset.querySelector('#extraImgGedproAtualizar') as HTMLImageElement;
 	const conteudo = fieldset.querySelector('#extraConteudoGedpro') as HTMLDivElement;
-	const tabela = fieldset.querySelector('#extraTblGedpro') as HTMLTableElement;
 	const lineBreak = document.createElement('br');
 
 	let estado: 'INICIAL' | 'CARREGANDO' | 'CARREGADO' | 'FECHADO' = 'INICIAL';
@@ -946,6 +833,7 @@ function criarAreaGedpro(
 		imgOcultar.hidden = true;
 		imgCarregando.hidden = true;
 		conteudo.hidden = true;
+		conteudo.textContent='';
 	}
 
 	function carregarDocumentos() {
@@ -954,14 +842,13 @@ function criarAreaGedpro(
 		imgOcultar.hidden = true;
 		imgCarregando.hidden = false;
 		conteudo.hidden = true;
+		conteudo.textContent='';
 		obterDocumentosGedpro(urlGedpro, processo).then(
-			({ xml, obterPagina }) => {
-				const nodes = new GedproNodes(xml);
-				console.log('Nós', nodes);
-				GedproTabela.visit(nodes);
-				minutas.insertAdjacentElement('afterend', GedproTabela.getTable());
+			({ host, xml, obterPagina }) => {
+				const nodes = parseGedproXml(xml);
+				conteudo.insertAdjacentElement('beforeend', renderGedproNodes(host, nodes));
 				documentosCarregados();
-			},
+			}).catch(
 			(error: any) => {
 				console.error(error);
 				alert('Ocorreu um erro ao tentar obter os documentos do Gedpro.');
@@ -972,6 +859,7 @@ function criarAreaGedpro(
 
 	function documentosCarregados() {
 		estado = 'CARREGADO';
+		window.wrappedJSObject.analisarDocs();
 		imgMostrar.hidden = true;
 		imgOcultar.hidden = false;
 		imgCarregando.hidden = true;
@@ -1328,7 +1216,11 @@ function onDocumentIdle() {
 	});
 }
 
-type RetornoGedpro = { xml: XMLDocument; obterPagina(_: number): Promise<RetornoGedpro> };
+type RetornoGedpro = {
+	host: string;
+	xml: XMLDocument;
+	obterPagina(_: number): Promise<RetornoGedpro>;
+};
 
 async function obterDocumentosGedpro(urlGedpro: string, processo: string): Promise<RetornoGedpro> {
 	let cachedDocsUrl: Promise<string> = Promise.reject();
@@ -1344,6 +1236,7 @@ async function obterDocumentosGedpro(urlGedpro: string, processo: string): Promi
 			return getDocsUrl(host, grupos);
 		});
 		const docsUrl = await cachedDocsUrl;
+		const host = new URL(docsUrl).host;
 		const response = await fetch(`${docsUrl}&pgtree=${pagina}`, {
 			credentials: 'include',
 		});
@@ -1358,6 +1251,7 @@ async function obterDocumentosGedpro(urlGedpro: string, processo: string): Promi
 		const parser = new DOMParser();
 		const xml = parser.parseFromString(text, 'application/xml') as XMLDocument;
 		return {
+			host,
 			xml,
 			obterPagina(pagina: number) {
 				return getXml(pagina);
