@@ -20,18 +20,3 @@ div.infraBarraComandos {
 div.infraAreaDados > #divPainel {
 	display: block;
 }
-.extraDocumentoObservacao,
-.extraDocumentoMemo {
-	display: none;
-}
-.extraTabelaMostrarAnotacoes .extraDocumentoObservacao,
-.extraTabelaMostrarAnotacoes .extraDocumentoMemo {
-	display: block;
-	margin-bottom: 0.5em;
-	font-size: 11px;
-	white-space: normal;
-	max-width: 50ex;
-}
-.extraTabelaMostrarAnotacoes .extraDocumentoObservacao {
-	margin-left: 34px;
-}

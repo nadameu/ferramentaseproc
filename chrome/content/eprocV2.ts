@@ -600,12 +600,6 @@ function carregarEstilosPersonalizados() {
 	query('.infraBarraSistema').ifJust(() => {
 		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
 		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
-		query<HTMLLinkElement>('link[href^="css/estilos.php?skin="]').ifJust(estilosPersonalizados => {
-			const result = /\?skin=([^&]*)/.exec(estilosPersonalizados.href) as RegExpExecArray;
-			const skins = new Map([['elegant', 'candy'], ['minimalist', 'icecream']]);
-			const skin = skins.has(result[1]) ? (skins.get(result[1]) as string) : 'stock';
-			promises.push(adicionarLinkStylesheet(`chrome/skin/${skin}-extra.css`));
-		});
 	});
 	return Promise.all(promises);
 }
