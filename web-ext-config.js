@@ -1,10 +1,11 @@
 module.exports = {
 	ignoreFiles: [
-		'jsconfig.json',
 		'package.json',
 		'package-lock.json',
 		'README.md',
+		'tsconfig.json',
 		'web-ext-config.js',
+		'*.ts',
 	],
 	lint: { selfHosted: true },
 	run: {
