@@ -1,4 +1,7 @@
 module.exports = {
+	build: {
+		overwriteDest: true,
+	},
 	ignoreFiles: [
 		'package.json',
 		'package-lock.json',

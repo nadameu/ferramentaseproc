@@ -4,8 +4,11 @@
 	"description": "Complemento para o Firefox \"Ferramentas e-Proc\"",
 	"main": "background.js",
 	"scripts": {
-		"build": "web-ext build",
-		"start": "web-ext run"
+		"build": "npm run \"build:tsc\" && npm run \"build:web-ext\"",
+		"build:tsc": "tsc",
+		"build:web-ext": "web-ext build",
+		"start": "web-ext run",
+		"watch": "tsc -w"
 	},
 	"repository": {
 		"type": "git",
