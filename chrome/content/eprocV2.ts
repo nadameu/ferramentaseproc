@@ -156,7 +156,6 @@ function parseGedproXml(xml: XMLDocument): GedproNode[] {
 	function fromIconesRegDoc(icones: string[], reg: Element): GedproDoc {
 		const [
 			rotulo,
-			textoMaiorAcesso,
 			codigo,
 			statusDocumento,
 			data,
@@ -167,7 +166,6 @@ function parseGedproXml(xml: XMLDocument): GedproNode[] {
 			dataVersao,
 		] = fromElementAttributes(reg, [
 			'nomeTipoDocumentoExibicao',
-			'MaiorAcesso',
 			'codigoDocumento',
 			'statusDocumento',
 			'dataDocumento',
@@ -177,11 +175,10 @@ function parseGedproXml(xml: XMLDocument): GedproNode[] {
 			'siglaEditor',
 			'dataHoraEdicao',
 		]);
-		const maiorAcesso = Number(textoMaiorAcesso);
-		if (isNaN(maiorAcesso)) {
-			console.warn('Dados informados:', reg);
-			throw new Error('Valor do maior acesso inválido.');
-		}
+		const maiorAcesso = Maybe.fromNullable(reg.getAttribute('MaiorAcesso'))
+			.map(Number)
+			.filter(x => !isNaN(x))
+			.getOrElse(0);
 		const status = statuses.get(statusDocumento);
 		const statusIcone = iconesStatus.get(statusDocumento);
 		if (status === undefined || statusIcone === undefined) {
@@ -285,22 +282,25 @@ function renderGedproNodes(host: string, nodes: GedproNode[]): HTMLTableElement 
 	}
 
 	function renderDoc(linha: HTMLTableRowElement, node: GedproDoc): HTMLTableRowElement {
-		let classeRotulo = 'extraGedproRotuloGray'
+		let classeRotulo = 'extraGedproRotuloGray';
 		if (node.maiorAcesso >= 2) {
-			classeRotulo = 'extraGedproRotuloBlue'
-			if (node.maiorAcesso>=8){
-				classeRotulo = 'extraGedproRotuloGreen'
+			classeRotulo = 'extraGedproRotuloBlue';
+			if (node.maiorAcesso >= 8) {
+				classeRotulo = 'extraGedproRotuloGreen';
 			}
-			const link = document.createElement('a')
-			link.dataset.doc = node.codigo
-			link.href = `http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${node.codigo}`
-			link.target="_blank;"
-			link.textContent=node.codigo
-			linha.cells[1].appendChild(link)
+			const link = document.createElement('a');
+			link.className = 'infraLinkDocumento';
+			link.dataset.doc = node.codigo;
+			link.href = `http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${
+				node.codigo
+			}`;
+			link.target = '_blank;';
+			link.textContent = node.codigo;
+			linha.cells[1].appendChild(link);
 		} else {
 			linha.cells[1].textContent = node.codigo;
 		}
-		linha.cells[0].classList.add(classeRotulo)
+		linha.cells[0].classList.add(classeRotulo);
 		linha.cells[2].textContent = node.status;
 		linha.cells[3].appendChild(imageFromNomeArquivo(node.statusIcone));
 		linha.cells[4].textContent = node.data;
@@ -312,7 +312,6 @@ function renderGedproNodes(host: string, nodes: GedproNode[]): HTMLTableElement 
 		linha.cells[6].insertAdjacentText('beforeend', node.dataVersao);
 		return linha;
 	}
-
 }
 
 class List<A> {
@@ -616,7 +615,6 @@ function carregarGedpro() {
 	return Preferencias.on(PreferenciasExtensao.DOCUMENTOS_GEDPRO, habilitada => {
 		if (habilitada) {
 			if (!carregado) {
-				// TODO: implementar
 				carregado = liftA3(
 					query<HTMLFieldSetElement>('fieldset#fldMinutas'),
 					query<HTMLAnchorElement>(
@@ -786,7 +784,12 @@ function criarAreaGedpro(
 			</span>
 			<img id="extraImgGedproAtualizar" src="imagens/icons/refresh.gif" title="Atualizar" alt="Atualizar" style="width: 0.94em; height: 1.1em;">
 		</legend>
-		<div id="extraConteudoGedpro" hidden></div>
+		<div id="extraConteudoGedpro" hidden>
+			<div id="extraTabelaGedpro"></div>
+			<br>
+			<button id="extraGedproMaisDocs" hidden>Carregar mais documentos</button>
+			<img id="extraImgGedproCarregandoMais" src="imagens/icons/loader.gif" title="Carregando" alt="Carregando" hidden>
+		</div>
 	</fieldset>`;
 	const fieldset = document.importNode(template.content, true).firstChild as HTMLFieldSetElement;
 	const toggle = fieldset.querySelector('#extraGedproToggle') as HTMLSpanElement;
@@ -795,15 +798,21 @@ function criarAreaGedpro(
 	const imgCarregando = fieldset.querySelector('#extraImgGedproCarregando') as HTMLImageElement;
 	const imgAtualizar = fieldset.querySelector('#extraImgGedproAtualizar') as HTMLImageElement;
 	const conteudo = fieldset.querySelector('#extraConteudoGedpro') as HTMLDivElement;
+	const espacoTabela = fieldset.querySelector('#extraTabelaGedpro') as HTMLDivElement;
+	const maisDocs = fieldset.querySelector('#extraGedproMaisDocs') as HTMLButtonElement;
+	const imgCarregandoMais = fieldset.querySelector(
+		'#extraImgGedproCarregandoMais'
+	) as HTMLImageElement;
 	const lineBreak = document.createElement('br');
 
-	let estado: 'INICIAL' | 'CARREGANDO' | 'CARREGADO' | 'FECHADO' = 'INICIAL';
+	let estado: 'INICIAL' | 'CARREGANDO' | 'CARREGANDO_MAIS' | 'CARREGADO' | 'FECHADO' = 'INICIAL';
 	toggle.addEventListener('click', () => {
 		switch (estado) {
 			case 'INICIAL':
 				carregarDocumentos();
 				break;
 			case 'CARREGANDO':
+			case 'CARREGANDO_MAIS':
 				break;
 			case 'CARREGADO':
 				ocultarDocumentos();
@@ -823,6 +832,7 @@ function criarAreaGedpro(
 				break;
 
 			case 'CARREGANDO':
+			case 'CARREGANDO_MAIS':
 				break;
 		}
 	});
@@ -833,37 +843,85 @@ function criarAreaGedpro(
 		imgOcultar.hidden = true;
 		imgCarregando.hidden = true;
 		conteudo.hidden = true;
-		conteudo.textContent='';
 	}
 
-	function carregarDocumentos() {
+	function carregandoDocumentos() {
 		estado = 'CARREGANDO';
 		imgMostrar.hidden = true;
 		imgOcultar.hidden = true;
 		imgCarregando.hidden = false;
 		conteudo.hidden = true;
-		conteudo.textContent='';
-		obterDocumentosGedpro(urlGedpro, processo).then(
-			({ host, xml, obterPagina }) => {
-				const nodes = parseGedproXml(xml);
-				conteudo.insertAdjacentElement('beforeend', renderGedproNodes(host, nodes));
-				documentosCarregados();
-			}).catch(
-			(error: any) => {
-				console.error(error);
-				alert('Ocorreu um erro ao tentar obter os documentos do Gedpro.');
-				limpar();
-			}
-		);
+		espacoTabela.textContent = '';
 	}
 
-	function documentosCarregados() {
+	function carregandoMais() {
+		estado = 'CARREGANDO_MAIS';
+		imgMostrar.hidden = true;
+		imgOcultar.hidden = true;
+		imgCarregando.hidden = true;
+		conteudo.hidden = false;
+		maisDocs.hidden = true;
+		imgCarregandoMais.hidden = false;
+	}
+
+	function carregarDocumentos() {
+		carregandoDocumentos();
+		obterDocumentosGedproFactory(urlGedpro, processo)
+			.then(({ host, obterPagina }) => {
+				let estado: false | { tabela: HTMLTableElement; pagina: number } = false;
+				maisDocs.addEventListener('click', evt => {
+					evt.preventDefault();
+					if (estado) {
+						carregarPagina(estado.pagina + 1).catch(onError);
+					}
+				});
+				return carregarPagina(1);
+
+				async function carregarPagina(pagina: number) {
+					if (estado) {
+						carregandoMais();
+					}
+					const xml = await obterPagina(pagina);
+					const nodes = parseGedproXml(xml);
+					const tabela = renderGedproNodes(host, nodes);
+					if (!estado) {
+						// Primeira vez que a tabela é carregada
+						espacoTabela.appendChild(tabela);
+					} else {
+						// Já existe uma tabela com dados
+						const tbody = tabela.querySelector('tbody') as HTMLTableSectionElement;
+						tbody.removeChild(tbody.querySelector('tr') as HTMLTableRowElement);
+						estado.tabela.appendChild(tbody);
+					}
+					if (nodes.length >= 21) {
+						// Há mais documentos
+						estado = { tabela, pagina };
+						documentosCarregados(true);
+					} else {
+						// Não há mais documentos
+						estado = false;
+						documentosCarregados(false);
+					}
+				}
+			})
+			.catch(onError);
+
+		function onError(error: any) {
+			console.error(error);
+			alert('Ocorreu um erro ao tentar obter os documentos do Gedpro.');
+			limpar();
+		}
+	}
+
+	function documentosCarregados(haMaisPaginas: boolean) {
 		estado = 'CARREGADO';
 		window.wrappedJSObject.analisarDocs();
 		imgMostrar.hidden = true;
 		imgOcultar.hidden = false;
 		imgCarregando.hidden = true;
 		conteudo.hidden = false;
+		imgCarregandoMais.hidden = true;
+		maisDocs.hidden = !haMaisPaginas;
 	}
 
 	function ocultarDocumentos() {
@@ -1218,15 +1276,17 @@ function onDocumentIdle() {
 
 type RetornoGedpro = {
 	host: string;
-	xml: XMLDocument;
-	obterPagina(_: number): Promise<RetornoGedpro>;
+	obterPagina(_: number): Promise<XMLDocument>;
 };
 
-async function obterDocumentosGedpro(urlGedpro: string, processo: string): Promise<RetornoGedpro> {
+async function obterDocumentosGedproFactory(
+	urlGedpro: string,
+	processo: string
+): Promise<RetornoGedpro> {
 	let cachedDocsUrl: Promise<string> = Promise.reject();
 	return getXml();
 
-	async function getXml(pagina = 1): Promise<RetornoGedpro> {
+	async function getXml(): Promise<RetornoGedpro> {
 		cachedDocsUrl = cachedDocsUrl.catch(async () => {
 			const link = await getLink(urlGedpro);
 			const host = new URL(link).host;
@@ -1237,24 +1297,23 @@ async function obterDocumentosGedpro(urlGedpro: string, processo: string): Promi
 		});
 		const docsUrl = await cachedDocsUrl;
 		const host = new URL(docsUrl).host;
-		const response = await fetch(`${docsUrl}&pgtree=${pagina}`, {
-			credentials: 'include',
-		});
-		const blob = await response.blob();
-		const text = await new Promise<string>(resolve => {
-			const reader = new FileReader();
-			reader.addEventListener('loadend', () => resolve(reader.result as string), {
-				once: true,
-			});
-			reader.readAsText(blob);
-		});
-		const parser = new DOMParser();
-		const xml = parser.parseFromString(text, 'application/xml') as XMLDocument;
 		return {
 			host,
-			xml,
-			obterPagina(pagina: number) {
-				return getXml(pagina);
+			async obterPagina(pagina: number): Promise<XMLDocument> {
+				const response = await fetch(`${docsUrl}&pgtree=${pagina}`, {
+					credentials: 'include',
+				});
+				const blob = await response.blob();
+				const text = await new Promise<string>(resolve => {
+					const reader = new FileReader();
+					reader.addEventListener('loadend', () => resolve(reader.result as string), {
+						once: true,
+					});
+					reader.readAsText(blob);
+				});
+				const parser = new DOMParser();
+				const xml = parser.parseFromString(text, 'application/xml') as XMLDocument;
+				return xml;
 			},
 		};
 	}

@@ -96,9 +96,8 @@ function parseGedproXml(xml) {
         return { isDoc: false, icones, rotulo };
     }
     function fromIconesRegDoc(icones, reg) {
-        const [rotulo, textoMaiorAcesso, codigo, statusDocumento, data, criador, dataCriacao, versao, editor, dataVersao,] = fromElementAttributes(reg, [
+        const [rotulo, codigo, statusDocumento, data, criador, dataCriacao, versao, editor, dataVersao,] = fromElementAttributes(reg, [
             'nomeTipoDocumentoExibicao',
-            'MaiorAcesso',
             'codigoDocumento',
             'statusDocumento',
             'dataDocumento',
@@ -108,11 +107,10 @@ function parseGedproXml(xml) {
             'siglaEditor',
             'dataHoraEdicao',
         ]);
-        const maiorAcesso = Number(textoMaiorAcesso);
-        if (isNaN(maiorAcesso)) {
-            console.warn('Dados informados:', reg);
-            throw new Error('Valor do maior acesso inválido.');
-        }
+        const maiorAcesso = Maybe.fromNullable(reg.getAttribute('MaiorAcesso'))
+            .map(Number)
+            .filter(x => !isNaN(x))
+            .getOrElse(0);
         const status = statuses.get(statusDocumento);
         const statusIcone = iconesStatus.get(statusDocumento);
         if (status === undefined || statusIcone === undefined) {
@@ -215,9 +213,10 @@ function renderGedproNodes(host, nodes) {
                 classeRotulo = 'extraGedproRotuloGreen';
             }
             const link = document.createElement('a');
+            link.className = 'infraLinkDocumento';
             link.dataset.doc = node.codigo;
             link.href = `http://${host}/visualizarDocumentos.asp?origem=pesquisa&ignoraframes=sim&codigoDocumento=${node.codigo}`;
-            link.target = "_blank;";
+            link.target = '_blank;';
             link.textContent = node.codigo;
             linha.cells[1].appendChild(link);
         }
@@ -503,7 +502,6 @@ function carregarGedpro() {
     return Preferencias.on("documentos-gedpro" /* DOCUMENTOS_GEDPRO */, habilitada => {
         if (habilitada) {
             if (!carregado) {
-                // TODO: implementar
                 carregado = liftA3(query('fieldset#fldMinutas'), query('#fldAcoes center a[href^="controlador.php?acao=acessar_processo_gedpro&"]').map(x => new URL(x.href, location.href).href), Maybe.fromNullable(new URL(location.href).searchParams.get('num_processo')), (minutas, urlGedpro, processo) => criarAreaGedpro(minutas, urlGedpro, processo)).getOrElse({ mostrar() { }, ocultar() { } });
             }
             carregado.mostrar();
@@ -642,7 +640,12 @@ function criarAreaGedpro(minutas, urlGedpro, processo) {
 			</span>
 			<img id="extraImgGedproAtualizar" src="imagens/icons/refresh.gif" title="Atualizar" alt="Atualizar" style="width: 0.94em; height: 1.1em;">
 		</legend>
-		<div id="extraConteudoGedpro" hidden></div>
+		<div id="extraConteudoGedpro" hidden>
+			<div id="extraTabelaGedpro"></div>
+			<br>
+			<button id="extraGedproMaisDocs" hidden>Carregar mais documentos</button>
+			<img id="extraImgGedproCarregandoMais" src="imagens/icons/loader.gif" title="Carregando" alt="Carregando" hidden>
+		</div>
 	</fieldset>`;
     const fieldset = document.importNode(template.content, true).firstChild;
     const toggle = fieldset.querySelector('#extraGedproToggle');
@@ -651,6 +654,9 @@ function criarAreaGedpro(minutas, urlGedpro, processo) {
     const imgCarregando = fieldset.querySelector('#extraImgGedproCarregando');
     const imgAtualizar = fieldset.querySelector('#extraImgGedproAtualizar');
     const conteudo = fieldset.querySelector('#extraConteudoGedpro');
+    const espacoTabela = fieldset.querySelector('#extraTabelaGedpro');
+    const maisDocs = fieldset.querySelector('#extraGedproMaisDocs');
+    const imgCarregandoMais = fieldset.querySelector('#extraImgGedproCarregandoMais');
     const lineBreak = document.createElement('br');
     let estado = 'INICIAL';
     toggle.addEventListener('click', () => {
@@ -659,6 +665,7 @@ function criarAreaGedpro(minutas, urlGedpro, processo) {
                 carregarDocumentos();
                 break;
             case 'CARREGANDO':
+            case 'CARREGANDO_MAIS':
                 break;
             case 'CARREGADO':
                 ocultarDocumentos();
@@ -676,6 +683,7 @@ function criarAreaGedpro(minutas, urlGedpro, processo) {
                 carregarDocumentos();
                 break;
             case 'CARREGANDO':
+            case 'CARREGANDO_MAIS':
                 break;
         }
     });
@@ -685,32 +693,81 @@ function criarAreaGedpro(minutas, urlGedpro, processo) {
         imgOcultar.hidden = true;
         imgCarregando.hidden = true;
         conteudo.hidden = true;
-        conteudo.textContent = '';
     }
-    function carregarDocumentos() {
+    function carregandoDocumentos() {
         estado = 'CARREGANDO';
         imgMostrar.hidden = true;
         imgOcultar.hidden = true;
         imgCarregando.hidden = false;
         conteudo.hidden = true;
-        conteudo.textContent = '';
-        obterDocumentosGedpro(urlGedpro, processo).then(({ host, xml, obterPagina }) => {
-            const nodes = parseGedproXml(xml);
-            conteudo.insertAdjacentElement('beforeend', renderGedproNodes(host, nodes));
-            documentosCarregados();
-        }).catch((error) => {
+        espacoTabela.textContent = '';
+    }
+    function carregandoMais() {
+        estado = 'CARREGANDO_MAIS';
+        imgMostrar.hidden = true;
+        imgOcultar.hidden = true;
+        imgCarregando.hidden = true;
+        conteudo.hidden = false;
+        maisDocs.hidden = true;
+        imgCarregandoMais.hidden = false;
+    }
+    function carregarDocumentos() {
+        carregandoDocumentos();
+        obterDocumentosGedproFactory(urlGedpro, processo)
+            .then(({ host, obterPagina }) => {
+            let estado = false;
+            maisDocs.addEventListener('click', evt => {
+                evt.preventDefault();
+                if (estado) {
+                    carregarPagina(estado.pagina + 1).catch(onError);
+                }
+            });
+            return carregarPagina(1);
+            async function carregarPagina(pagina) {
+                if (estado) {
+                    carregandoMais();
+                }
+                const xml = await obterPagina(pagina);
+                const nodes = parseGedproXml(xml);
+                const tabela = renderGedproNodes(host, nodes);
+                if (!estado) {
+                    // Primeira vez que a tabela é carregada
+                    espacoTabela.appendChild(tabela);
+                }
+                else {
+                    // Já existe uma tabela com dados
+                    const tbody = tabela.querySelector('tbody');
+                    tbody.removeChild(tbody.querySelector('tr'));
+                    estado.tabela.appendChild(tbody);
+                }
+                if (nodes.length >= 21) {
+                    // Há mais documentos
+                    estado = { tabela, pagina };
+                    documentosCarregados(true);
+                }
+                else {
+                    // Não há mais documentos
+                    estado = false;
+                    documentosCarregados(false);
+                }
+            }
+        })
+            .catch(onError);
+        function onError(error) {
             console.error(error);
             alert('Ocorreu um erro ao tentar obter os documentos do Gedpro.');
             limpar();
-        });
+        }
     }
-    function documentosCarregados() {
+    function documentosCarregados(haMaisPaginas) {
         estado = 'CARREGADO';
         window.wrappedJSObject.analisarDocs();
         imgMostrar.hidden = true;
         imgOcultar.hidden = false;
         imgCarregando.hidden = true;
         conteudo.hidden = false;
+        imgCarregandoMais.hidden = true;
+        maisDocs.hidden = !haMaisPaginas;
     }
     function ocultarDocumentos() {
         estado = 'FECHADO';
@@ -1013,10 +1070,10 @@ function onDocumentIdle() {
         }
     });
 }
-async function obterDocumentosGedpro(urlGedpro, processo) {
+async function obterDocumentosGedproFactory(urlGedpro, processo) {
     let cachedDocsUrl = Promise.reject();
     return getXml();
-    async function getXml(pagina = 1) {
+    async function getXml() {
         cachedDocsUrl = cachedDocsUrl.catch(async () => {
             const link = await getLink(urlGedpro);
             const host = new URL(link).host;
@@ -1027,24 +1084,23 @@ async function obterDocumentosGedpro(urlGedpro, processo) {
         });
         const docsUrl = await cachedDocsUrl;
         const host = new URL(docsUrl).host;
-        const response = await fetch(`${docsUrl}&pgtree=${pagina}`, {
-            credentials: 'include',
-        });
-        const blob = await response.blob();
-        const text = await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.addEventListener('loadend', () => resolve(reader.result), {
-                once: true,
-            });
-            reader.readAsText(blob);
-        });
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(text, 'application/xml');
         return {
             host,
-            xml,
-            obterPagina(pagina) {
-                return getXml(pagina);
+            async obterPagina(pagina) {
+                const response = await fetch(`${docsUrl}&pgtree=${pagina}`, {
+                    credentials: 'include',
+                });
+                const blob = await response.blob();
+                const text = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.addEventListener('loadend', () => resolve(reader.result), {
+                        once: true,
+                    });
+                    reader.readAsText(blob);
+                });
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'application/xml');
+                return xml;
             },
         };
     }

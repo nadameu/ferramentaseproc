@@ -9,13 +9,6 @@
 	color: #444;
 	border: dotted 1px #fca;
 }
-a img {
-	border: none;
-}
-.extraGedproRotuloGreen,
-.extraGedproRotuloBlue {
-	cursor: pointer;
-}
 .extraGedproRotuloGreen {
 	color: green;
 }
@@ -24,21 +17,10 @@ a img {
 }
 .extraGedproRotuloGray {
 	color: gray;
-	cursor: inherit;
 }
 .extraGedproImg {
 	cursor: inherit;
 	vertical-align: middle;
-}
-.extraGedproPaginacao {
-	text-align: center;
-}
-.extraGedproPaginacao a {
-	text-decoration: none;
-}
-.extraGedproPaginaAtual {
-	font-weight: bold;
-	font-size: 1.3em;
 }
 button.infraButton.extraBuscarPreventosButton,
 button.infraButton.extraBuscarPreventosButton:hover {
