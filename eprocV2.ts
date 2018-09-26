@@ -598,8 +598,8 @@ function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'scre
 function carregarEstilosPersonalizados() {
 	const promises: Promise<HTMLLinkElement>[] = [];
 	query('.infraBarraSistema').ifJust(() => {
-		promises.push(adicionarLinkStylesheet('chrome/skin/eprocV2.css'));
-		promises.push(adicionarLinkStylesheet('chrome/skin/print.css', 'print'));
+		promises.push(adicionarLinkStylesheet('css/eprocV2.css'));
+		promises.push(adicionarLinkStylesheet('css/print.css', 'print'));
 	});
 	return Promise.all(promises);
 }
@@ -1166,7 +1166,7 @@ function mostrarIconesNoMenuAcoes() {
 					};
 				}
 				function ChromeIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-					return criarIcone(browser.runtime.getURL(`chrome/skin/${arquivo}`));
+					return criarIcone(browser.runtime.getURL(`images/${arquivo}`));
 				}
 				function InfraIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
 					return criarIcone(`infra_css/imagens/${arquivo}`);

@@ -1,0 +1,22 @@
+.noprint {
+	display: none;
+}
+#divInfraAreaGlobal,
+#divInfraAreaTela,
+#divInfraAreaTelaD {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: none;
+	width: auto;
+	height: auto;
+}
+#divInfraBarraTribunal,
+#divInfraBarraSistemaLocalizacao,
+#divInfraAreaTelaE,
+div.infraBarraComandos {
+	display: none;
+}
+div.infraAreaDados > #divPainel {
+	display: block;
+}

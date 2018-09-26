@@ -15,8 +15,8 @@
 	"browser_action": {
 		"browser_style": false,
 		"default_icon": {
-			"16": "chrome/skin/stapler-16.png",
-			"32": "chrome/skin/stapler-32.png"
+			"16": "images/stapler-16.png",
+			"32": "images/stapler-32.png"
 		},
 		"default_title": "Ferramentas e-Proc"
 	},
@@ -29,17 +29,17 @@
 				"https://eproc.jfsc.jus.br/eprocV2/*"
 			],
 			"exclude_globs": ["controlador.php\\?acao=acessar_documento_implementacao"],
-			"js": ["chrome/content/eprocV2.js"],
+			"js": ["eprocV2.js"],
 			"run_at": "document_start"
 		}
 	],
 	"icons": {
-		"48": "chrome/skin/stapler.png",
-		"96": "chrome/skin/stapler-96.png"
+		"48": "images/stapler.png",
+		"96": "images/stapler-96.png"
 	},
 	"options_ui": {
 		"browser_style": false,
-		"page": "chrome/content/options.html"
+		"page": "options.html"
 	},
 	"permissions": [
 		"activeTab",
@@ -56,10 +56,5 @@
 		"http://gedpro.jfsc.jus.br/*",
 		"http://gedpro2.jfsc.jus.br/*"
 	],
-	"web_accessible_resources": [
-		"chrome/skin/*.css",
-		"chrome/skin/*.gif",
-		"chrome/skin/*.jpg",
-		"chrome/skin/*.png"
-	]
+	"web_accessible_resources": ["css/*.css", "images/*.gif", "images/*.jpg", "images/*.png"]
 }
