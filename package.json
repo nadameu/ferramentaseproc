@@ -25,6 +25,6 @@
 		"@types/firefox-webext-browser": "^58.0.4",
 		"prettier": "^1.14.2",
 		"typescript": "^3.0.3",
-		"web-ext": "^2.9.1"
+		"web-ext": "^3.1.0"
 	}
 }
