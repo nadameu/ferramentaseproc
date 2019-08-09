@@ -1090,11 +1090,11 @@ async function obterPreferenciaExtensao<T>(nome: string, valorPadrao: T): Promis
 	return result[nome];
 }
 
-function query<T extends Element>(selector: string, context: NodeSelector = document): Maybe<T> {
+function query<T extends Element>(selector: string, context: ParentNode = document): Maybe<T> {
 	return Maybe.fromNullable(context.querySelector<T>(selector));
 }
 
-function queryAll<T extends Element>(selector: string, context: NodeSelector = document): List<T> {
+function queryAll<T extends Element>(selector: string, context: ParentNode = document): List<T> {
 	return List.fromArray(context.querySelectorAll<T>(selector));
 }
 
