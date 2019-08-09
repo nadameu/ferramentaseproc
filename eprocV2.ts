@@ -5,18 +5,13 @@ async function main() {
 	await verificarCompatibilidadeVersao();
 	await carregarEstilosPersonalizados();
 	return Promise.all([
-		corrigirPesquisaRapida(),
-		destacarUltimoLinkClicado(),
 		// TODO: fechar todas as janelas
 		modificarTabelaProcessos(),
 		modificarPaginaEspecifica(),
-		mostrarIconesNoMenuAcoes(),
 	]);
 }
 
 const Acoes = new Map<string, () => Promise<void>>([
-	['entrar', centralizarListaPerfis],
-	['entrar_cert', centralizarListaPerfis],
 	['usuario_tipo_monitoramento_localizador_listar', decorarTabelaMeusLocalizadores],
 	['processo_selecionar', telaProcesso],
 ]);
@@ -551,14 +546,9 @@ class ServicoPreferencias {
 const Preferencias = new ServicoPreferencias();
 
 const enum PreferenciasExtensao {
-	PESQUISA_RAPIDA = 'pesquisa-rapida',
 	TABELA_PROCESSOS = 'tabela-processos',
-	ICONES_ACOES = 'icones-acoes',
-	ENTRAR = 'entrar',
 	TABELA_LOCALIZADORES = 'tabela-localizadores',
 	DOCUMENTOS_GEDPRO = 'documentos-gedpro',
-	EVENTOS_REFERIDOS = 'eventos-referidos',
-	ULTIMO_CLICADO = 'ultimo-clicado',
 	FECHAR_JANELAS = 'fechar-janelas',
 }
 
@@ -625,141 +615,12 @@ function carregarGedpro() {
 	});
 }
 
-function centralizarListaPerfis() {
-	let carregado: false | HTMLStyleElement = false;
-	return Preferencias.on(PreferenciasExtensao.ENTRAR, habilitada => {
-		if (habilitada) {
-			if (!carregado) {
-				carregado = adicionarEstilos('#fldLogin { position: static; margin: 6% auto; }');
-			}
-		} else if (carregado) {
-			document.head.removeChild(carregado);
-			carregado = false;
-		}
-	});
-}
-
 function closest<K extends keyof HTMLElementTagNameMap>(
 	selector: K
 ): (element: Element) => Maybe<HTMLElementTagNameMap[K]>;
 function closest<T extends Element>(selector: string): (element: Element) => Maybe<T>;
 function closest(selector: string) {
 	return (element: Element) => Maybe.fromNullable(element.closest(selector));
-}
-
-function complementarEventosReferidos() {
-	let carregado:
-		| false
-		| {
-				eventosReferentes: Map<number, HTMLTableCellElement[]>;
-				eventosReferidos: Map<number, string>;
-		  } = false;
-	return Preferencias.on(PreferenciasExtensao.EVENTOS_REFERIDOS, habilitada => {
-		if (habilitada) {
-			if (!carregado) {
-				const eventosReferentes = new Map<number, HTMLTableCellElement[]>();
-				const eventosReferidos = new Map<number, string>();
-				query<HTMLTableElement>('table#tblEventos').map(tabela => {
-					queryAll<HTMLTableRowElement>(
-						'tr[class^="infraTr"], tr[bgcolor="#FFFACD"]',
-						tabela
-					).forEach(tr => {
-						const colunaDescricao = Just(tr.cells.length - 3)
-							.filter(x => x >= 0)
-							.map<HTMLTableCellElement>(i => tr.cells[i]);
-						const eventoReferente = colunaDescricao
-							.chain(obterTexto)
-							.mapNullable(x => x.match(/Refer\. ao Evento: (\d+)$/))
-							.map(x => Number(x[1]));
-						liftA2(eventoReferente, colunaDescricao, (ev, col) => {
-							eventosReferentes.set(ev, (eventosReferentes.get(ev) || []).concat([col]));
-						}).altL(() => {
-							if (query('.infraEventoPrazoParte', tr).isNothing()) return Nothing;
-							const numeroEvento = Just(tr.cells.length - 5)
-								.filter(x => x >= 0)
-								.map<HTMLTableCellElement>(i => tr.cells[i])
-								.chain(obterTexto)
-								.mapNullable(x => x.match(/\d+/))
-								.map(x => Number(x[0]));
-							if (!numeroEvento.map(ev => eventosReferentes.has(ev)).getOrElse(false))
-								return Nothing;
-							const segundaLinha = colunaDescricao
-								.mapNullable(x => x.innerHTML.split('<br>'))
-								.filter(xs => xs.length > 1)
-								.map(xs => xs[1]);
-							return liftA2(numeroEvento, segundaLinha, (ev, seg) => {
-								if (eventosReferentes.has(ev)) {
-									eventosReferidos.set(ev, seg);
-								}
-							});
-						});
-					});
-				});
-				carregado = { eventosReferentes, eventosReferidos };
-			}
-			for (const [ev, colunas] of carregado.eventosReferentes.entries()) {
-				const texto = carregado.eventosReferidos.get(ev);
-				if (texto) {
-					colunas.forEach(coluna => {
-						coluna.insertAdjacentHTML(
-							'beforeend',
-							`<span class="extraReferente noprint"><br>${texto}</span>`
-						);
-					});
-				}
-			}
-		} else if (carregado) {
-			queryAll('.extraReferente').forEach(elt => {
-				(elt.parentNode as Node).removeChild(elt);
-			});
-		}
-	});
-
-	function obterTexto(node: Node): Maybe<string> {
-		return Just((node.textContent || '').trim()).filter(x => x !== '');
-	}
-}
-
-function corrigirPesquisaRapida() {
-	let carregado:
-		| false
-		| Maybe<{
-				input: HTMLInputElement;
-				value: string | null;
-				style: string | null;
-				onfocus: string | null;
-		  }> = false;
-	return Preferencias.on(PreferenciasExtensao.PESQUISA_RAPIDA, habilitada => {
-		if (habilitada) {
-			if (!carregado) {
-				carregado = query('#txtNumProcessoPesquisaRapida')
-					.refine((x: Element): x is HTMLInputElement => x.matches('input'))
-					.filter(input => 'placeholder' in input)
-					.map(input => ({
-						input,
-						value: input.getAttribute('value'),
-						style: input.getAttribute('style'),
-						onfocus: input.getAttribute('onfocus'),
-					}));
-			}
-			carregado.ifJust(({ input }) => {
-				input.setAttribute('placeholder', 'Pesquisa');
-				input.removeAttribute('value');
-				input.setAttribute('style', 'font-size: 1.1em;');
-				input.removeAttribute('onfocus');
-			});
-		} else if (carregado) {
-			carregado.ifJust(({ input, value, style, onfocus }) => {
-				input.removeAttribute('placeholder');
-				if (value) {
-					input.setAttribute('value', value);
-					if (input.value === '') input.value = value;
-				}
-				if (style) input.setAttribute('style', style);
-				if (onfocus) input.setAttribute('onfocus', onfocus);
-			});
-		}
-	});
 }
 
 function criarAreaGedpro(
@@ -1018,31 +879,6 @@ function decorarTabelaMeusLocalizadores() {
 	);
 }
 
-function destacarUltimoLinkClicado() {
-	let carregado: false | ((_: MouseEvent) => void) = false;
-	return Preferencias.on(PreferenciasExtensao.ULTIMO_CLICADO, habilitada => {
-		if (habilitada) {
-			if (!carregado) {
-				carregado = evt => {
-					Maybe.fromNullable(evt.target)
-						.refine(
-							(elt): elt is HTMLAnchorElement =>
-								(elt as Node).nodeType === Node.ELEMENT_NODE &&
-								(elt as Element).matches('a[data-doc]')
-						)
-						.ifJust(link => {
-							query('#extraUltimoLinkClicado').ifJust(link => link.removeAttribute('id'));
-							link.setAttribute('id', 'extraUltimoLinkClicado');
-						});
-				};
-			}
-			document.body.addEventListener('click', carregado);
-		} else if (carregado) {
-			document.body.removeEventListener('click', carregado);
-		}
-	});
-}
-
 function liftA2<A, B, C>(mx: Maybe<A>, my: Maybe<B>, f: (x: A, y: B) => C): Maybe<C>;
 function liftA2<A, B, C>(ax: Apply<A>, ay: Apply<B>, f: (x: A, y: B) => C): Apply<C> {
 	return ay.ap(ax.map((x: A) => (y: B) => f(x, y)));
@@ -1109,127 +945,6 @@ function modificarTabelaProcessos() {
 			}
 		}
 	});
-}
-
-function mostrarIconesNoMenuAcoes() {
-	const maybeFieldset = query<HTMLFieldSetElement>('fieldset#fldAcoes');
-	const maybeLegend = maybeFieldset.chain(fieldset =>
-		query<HTMLLegendElement>(':scope > legend', fieldset)
-	);
-	return liftA2(maybeFieldset, maybeLegend, async (fieldset, legend) => {
-		const acoes = queryAll<HTMLAnchorElement>(':scope > center a', fieldset);
-		if (acoes.isEmpty()) return [];
-
-		const botoesNoMenuAcoes = acoes.every(acao => acao.classList.contains('infraButton'));
-		if (!botoesNoMenuAcoes) return [];
-
-		const template = document.createElement('template');
-		template.innerHTML = `<div class="extraAcoesOpcoes noprint"><input type="checkbox" id="chkMostrarIcones"><label for="chkMostrarIcones"> Mostrar Ícones</label></div>`;
-		const content = document.importNode(template.content, true);
-		const chkMostrarIcones = content.querySelector('#chkMostrarIcones') as HTMLInputElement;
-		const key = PreferenciasExtensao.ICONES_ACOES;
-		chkMostrarIcones.addEventListener('change', () => {
-			browser.storage.local.set({ [key]: chkMostrarIcones.checked });
-		});
-		legend.appendChild(content);
-
-		let carregado = false;
-
-		return Preferencias.on(PreferenciasExtensao.ICONES_ACOES, async mostrarIcones => {
-			fieldset.classList.toggle('extraAcoesMostrarIcones', mostrarIcones);
-			chkMostrarIcones.checked = mostrarIcones;
-			if (mostrarIcones && !carregado) {
-				const iconeTemplate = document.createElement('template');
-				iconeTemplate.innerHTML = '<img alt=" " class="extraIconeAcao noprint">';
-				function criarIcone(src: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-					return function criarIcone(link) {
-						const icone = document.importNode(iconeTemplate.content, true)
-							.firstElementChild as HTMLImageElement;
-						return new Promise((resolve, reject) => {
-							function onload(_: Event) {
-								removeListeners();
-								resolve(icone);
-							}
-							function onerror(e: Event) {
-								removeListeners();
-								reject(e);
-							}
-							function removeListeners() {
-								icone.removeEventListener('load', onload);
-								icone.removeEventListener('error', onerror);
-							}
-							icone.addEventListener('load', onload);
-							icone.addEventListener('error', onerror);
-							link.insertAdjacentElement('afterbegin', icone);
-							icone.src = src;
-						});
-					};
-				}
-				function ChromeIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-					return criarIcone(browser.runtime.getURL(`images/${arquivo}`));
-				}
-				function InfraIcone(arquivo: string): (_: HTMLAnchorElement) => Promise<HTMLImageElement> {
-					return criarIcone(`infra_css/imagens/${arquivo}`);
-				}
-
-				const icones = new Map([
-					['acessar_processo_gedpro', ChromeIcone('ie.png')],
-					['acesso_usuario_processo_cadastrar', InfraIcone('menos.gif')],
-					['arvore_documento_listar', ChromeIcone('tree.gif')],
-					['audiencia_listar', ChromeIcone('microphone.png')],
-					['criar_mandado', ChromeIcone('knight-crest.gif')],
-					['gerenciamento_partes_listar', InfraIcone('grupo.gif')],
-					['gerenciamento_partes_situacao_listar', InfraIcone('marcar.gif')],
-					['gerenciamento_peritos_listar', ChromeIcone('graduation-hat.png')],
-					['intimacao_bloco_filtrar', InfraIcone('versoes.gif')],
-					['oficio_requisitorio_listar', ChromeIcone('money.png')],
-					['processo_agravar', InfraIcone('atualizar.gif')],
-					['processo_apelacao', ChromeIcone('up.png')],
-					['processo_cadastrar', InfraIcone('atualizar.gif')],
-					['processo_citacao', ChromeIcone('newspaper.png')],
-					['processo_consultar', InfraIcone('lupa.gif')],
-					['processo_edicao', InfraIcone('assinar.gif')],
-					['processo_expedir_carta_subform', InfraIcone('email.gif')],
-					['processo_gerenciar_proc_individual_listar', InfraIcone('marcar.gif')],
-					['processo_intimacao', InfraIcone('encaminhar.gif')],
-					['processo_intimacao_aps_bloco', InfraIcone('transportar.gif')],
-					['processo_intimacao_bloco', InfraIcone('encaminhar.gif')],
-					['processo_lembrete_destino_cadastrar', InfraIcone('tooltip.gif')],
-					['processo_movimento_consultar', InfraIcone('receber.gif')],
-					['processo_movimento_desativar_consulta', InfraIcone('remover.gif')],
-					['processo_remessa_tr', ChromeIcone('up.png')],
-					['processo_requisicao_cef', ChromeIcone('predio.png')],
-					['procurador_parte_associar', InfraIcone('mais.gif')],
-					['procurador_parte_listar', InfraIcone('mais.gif')],
-					['redistribuicao_entre_secoes', InfraIcone('hierarquia.gif')],
-					['redistribuicao_processo', InfraIcone('hierarquia.gif')],
-					['requisicao_pagamento_cadastrar', ChromeIcone('money.png')],
-					['selecionar_processos_agendar_arquivo_completo', InfraIcone('pdf.gif')],
-					['selecionar_processos_remessa_instancia_superior', ChromeIcone('up.png')],
-					['selecionar_processos_remessa_instancia_superior_stf', ChromeIcone('up.png')],
-				]);
-
-				const promises: Promise<HTMLImageElement>[] = [];
-				acoes.forEach(link => {
-					const url = new URL(link.href);
-					const params = url.searchParams;
-					if (params.has('acao')) {
-						const acao = params.get('acao') as string;
-						if (icones.has(acao)) {
-							const adicionarIcone = icones.get(acao) as (
-								_: HTMLAnchorElement
-							) => Promise<HTMLImageElement>;
-							promises.push(adicionarIcone(link));
-						}
-					}
-				});
-
-				carregado = true;
-				return Promise.all(promises);
-			}
-			return Promise.resolve([]);
-		});
-	}).getOrElse(Promise.resolve([]));
 }
 
 function onDocumentStart() {
@@ -1384,7 +1099,7 @@ function queryAll<T extends Element>(selector: string, context: NodeSelector = d
 }
 
 function telaProcesso() {
-	return Promise.all([carregarGedpro(), complementarEventosReferidos()]).then(() => {});
+	return carregarGedpro();
 }
 
 async function verificarCompatibilidadeVersao() {
