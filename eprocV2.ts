@@ -587,7 +587,7 @@ function adicionarLinkStylesheet(path: string, media: 'print' | 'screen' = 'scre
 
 function carregarEstilosPersonalizados() {
 	const promises: Promise<HTMLLinkElement>[] = [];
-	query('.infraBarraSistema').ifJust(() => {
+	query('.infraBarraSistema, nav.navbar').ifJust(() => {
 		promises.push(adicionarLinkStylesheet('css/eprocV2.css'));
 		promises.push(adicionarLinkStylesheet('css/print.css', 'print'));
 	});
