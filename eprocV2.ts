@@ -532,7 +532,7 @@ class ServicoPreferencias {
 				this._preferencias = Promise.resolve(novasPreferencias);
 			});
 		});
-		this._preferencias = browser.storage.local.get();
+		this._preferencias = browser.storage.local.get() as any;
 	}
 	async on<T>(nome: PreferenciasExtensao, listener: (_: boolean) => T | Promise<T>): Promise<T> {
 		this._listeners.set(nome, (this._listeners.get(nome) || []).concat([listener]));
@@ -818,6 +818,7 @@ function decorarTabelaLocalizadores(linhas: List<HTMLTableRowElement>) {
 		  } = false;
 	return Preferencias.on(PreferenciasExtensao.TABELA_LOCALIZADORES, habilitada => {
 		if (habilitada) {
+			console.log({habilitada,carregado})
 			if (!carregado) {
 				const linhasSalvas = new Map<HTMLTableRowElement, string>();
 				const listeners = new Map<HTMLTableRowElement, () => void>();

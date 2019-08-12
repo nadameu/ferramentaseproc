@@ -14,6 +14,7 @@ module.exports = {
 	run: {
 		browserConsole: true,
 		pref: ['browser.link.open_newwindow=3'],
-		startUrl: ['https://eproc.jfsc.jus.br/eprocV2/'],
+		startUrl: ['https://homologa-1g1.trf4.jus.br/homologa_1g/'],
+		firefox: 'C:\\Users\\pmj\\AppData\\Local\\Mozilla Firefox ESR\\firefox.exe',
 	},
 };

@@ -1,6 +1,6 @@
 {
 	"name": "ferramentaseproc",
-	"version": "1.1.0",
+	"version": "2.0.0",
 	"description": "Complemento para o Firefox \"Ferramentas e-Proc\"",
 	"main": "background.js",
 	"scripts": {
@@ -22,9 +22,9 @@
 	},
 	"homepage": "https://github.com/nadameu/ferramentaseproc#readme",
 	"devDependencies": {
-		"@types/firefox-webext-browser": "^58.0.4",
+		"@types/firefox-webext-browser": "^67.0.2",
 		"prettier": "^1.14.2",
 		"typescript": "^3.0.3",
-		"web-ext": "^3.1.0"
+		"web-ext": "^3.1.1"
 	}
 }
