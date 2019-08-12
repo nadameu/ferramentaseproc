@@ -532,7 +532,7 @@ class ServicoPreferencias {
 				this._preferencias = Promise.resolve(novasPreferencias);
 			});
 		});
-		this._preferencias = browser.storage.local.get();
+		this._preferencias = browser.storage.local.get() as any;
 	}
 	async on<T>(nome: PreferenciasExtensao, listener: (_: boolean) => T | Promise<T>): Promise<T> {
 		this._listeners.set(nome, (this._listeners.get(nome) || []).concat([listener]));
